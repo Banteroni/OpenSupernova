@@ -2,27 +2,42 @@
 
 public class Mp3LocalMetadataService : ILocalMetadataService
 {
-    public Task<string> RetrieveAlbumName(FileStream stream)
+    public string RetrieveAlbumName(FileStream stream)
     {
         throw new NotImplementedException();
     }
 
-    public Task<string> RetrieveArtistName(FileStream stream)
+    public string RetrieveAlbumYear(FileStream stream)
     {
         throw new NotImplementedException();
     }
 
-    public Task<string> RetrieveTrackTitle(FileStream stream)
+    public string RetrieveAlbumArtist(FileStream stream)
     {
         throw new NotImplementedException();
     }
 
-    public Task<string> RetrieveTrackArtist(FileStream stream)
+    public string RetrieveArtistName(FileStream stream)
     {
         throw new NotImplementedException();
     }
 
-    public Task<int> RetrieveTrackNumber(FileStream stream)
+    public string RetrieveTrackTitle(FileStream stream)
+    {
+        throw new NotImplementedException();
+    }
+
+    public string RetrieveTrackArtist(FileStream stream)
+    {
+        throw new NotImplementedException();
+    }
+
+    public string RetrieveTrackNumber(FileStream stream)
+    {
+        throw new NotImplementedException();
+    }
+
+    public MetadataPicture RetrievePicture(FileStream stream)
     {
         throw new NotImplementedException();
     }

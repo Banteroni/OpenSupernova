@@ -32,6 +32,34 @@ public class FlacLocalMetadataServiceTest
     public void RetrieveTrackTitle()
     {
         var title = _flacLocalMetadataService.RetrieveTrackTitle(_flacStream);
-        Assert.Pass();
+        Assert.That(title, Is.Not.Null);
+    }
+
+    [Test]
+    public void RetrieveAlbumArtist()
+    {
+        var albumArtist = _flacLocalMetadataService.RetrieveAlbumArtist(_flacStream);
+        Assert.That(albumArtist, Is.Not.Null);
+    }
+
+    [Test]
+    public void RetrieveAlbumName()
+    {
+        var albumArtist = _flacLocalMetadataService.RetrieveAlbumName(_flacStream);
+        Assert.That(albumArtist, Is.Not.Null);
+    }
+
+    [Test]
+    public void RetrieveTrackNumber()
+    {
+        var trackNumber = _flacLocalMetadataService.RetrieveTrackNumber(_flacStream);
+        Assert.That(trackNumber, Is.Not.Null);
+    }
+
+    [Test]
+    public void RetrievePicture()
+    {
+        var picture = _flacLocalMetadataService.RetrievePicture(_flacStream);
+        Assert.That(picture, Is.Not.Null);
     }
 }

@@ -2,13 +2,17 @@
 
 public interface ILocalMetadataService
 {
-    public Task<string> RetrieveAlbumName(FileStream stream);
+    public string? RetrieveAlbumName(FileStream stream);
 
-    public Task<string> RetrieveArtistName(FileStream stream);
+    public string? RetrieveAlbumYear(FileStream stream);
 
-    public Task<string> RetrieveTrackTitle(FileStream stream);
+    public string? RetrieveAlbumArtist(FileStream stream);
 
-    public Task<string> RetrieveTrackArtist(FileStream stream);
+    public string? RetrieveTrackTitle(FileStream stream);
 
-    public Task<int> RetrieveTrackNumber(FileStream stream);
-}
+    public string? RetrieveTrackArtist(FileStream stream);
+
+    public string? RetrieveTrackNumber(FileStream stream);
+
+    public MetadataPicture RetrievePicture(FileStream stream);
+} 
