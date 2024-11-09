@@ -2,11 +2,11 @@
 
 public interface IStorageService
 {
-    public Task<bool> SaveFileAsync(Stream stream, string path);
+    public Task<bool> SaveFileAsync(Stream stream, string objectName);
 
-    public Task<FileStream?> GetFileAsync(string path);
+    public Task<FileStream?> GetFileAsync(string objectName);
 
-    public Task<bool> DeleteFileAsync(string path);
+    public Task<bool> DeleteFileAsync(string objectName);
 
-    public Task<bool> FileExistsAsync(string path);
+    public Task<bool> FileExistsAsync(string objectName);
 }

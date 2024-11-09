@@ -28,4 +28,10 @@
       <ProjectReference Include="..\OS.Services\OS.Services.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Update="dummy.flac">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
 </Project>

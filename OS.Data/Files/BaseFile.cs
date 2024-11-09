@@ -7,19 +7,23 @@ public abstract class BaseFile(FileStream data) : IDisposable
     public void Dispose() => Data.Dispose();
     public abstract bool IsCorrectFormat();
 
-    public abstract string? RetrieveAlbumName();
+    public abstract string? GetAlbumGenre();
+    
+    public abstract string? GetAlbumName();
 
-    public abstract string? RetrieveAlbumYear();
+    public abstract int? GetAlbumYear();
 
-    public abstract string? RetrieveAlbumArtist();
+    public abstract string? GetAlbumArtist();
 
-    public abstract string? RetrieveTrackTitle();
+    public abstract string? GetTrackTitle();
 
-    public abstract string? RetrieveTrackArtist();
+    public abstract string? GetTrackArtist();
+    
+    public abstract string? GetTrackPerformer();
 
-    public abstract string? RetrieveTrackNumber();
+    public abstract int? GetTrackNumber();
 
-    public abstract IEnumerable<MetadataPicture> RetrievePictures();
+    public abstract IEnumerable<MetadataPicture> GetPictures();
 
-    public abstract MetadataPicture? RetrievePicture(MediaType type);
+    public abstract MetadataPicture? GetPicture(MediaType type);
 }

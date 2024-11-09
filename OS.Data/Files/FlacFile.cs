@@ -24,43 +24,63 @@ public class FlacFile(FileStream data) : BaseFile(data)
         return Encoding.UTF8.GetString(flacHeader) == "fLaC";
     }
 
-    public override string? RetrieveAlbumName()
+    public override string? GetAlbumGenre()
+    {
+        return ExtractVorbisComment(FlacVorbisCommentField.Genre);
+    }
+
+    public override string? GetAlbumName()
     {
         return ExtractVorbisComment(FlacVorbisCommentField.Album);
     }
 
-    public override string? RetrieveAlbumYear()
+    public override int? GetAlbumYear()
     {
-        return ExtractVorbisComment(FlacVorbisCommentField.Year);
+        var year =  ExtractVorbisComment(FlacVorbisCommentField.Year);
+        if (year == null)
+        {
+            return null;
+        }
+        int.TryParse(year, out var yearInt); return yearInt;
     }
 
-    public override string? RetrieveAlbumArtist()
+    public override string? GetAlbumArtist()
     {
         return ExtractVorbisComment(FlacVorbisCommentField.AlbumArtist);
     }
 
-    public override string? RetrieveTrackTitle()
+    public override string? GetTrackTitle()
     {
         return ExtractVorbisComment(FlacVorbisCommentField.Title);
     }
 
-    public override string? RetrieveTrackArtist()
+    public override string? GetTrackArtist()
     {
         return ExtractVorbisComment(FlacVorbisCommentField.Artist);
     }
 
-    public override string? RetrieveTrackNumber()
+    public override int? GetTrackNumber()
     {
-        return ExtractVorbisComment(FlacVorbisCommentField.TrackNumber);
+        var trackNumber =  ExtractVorbisComment(FlacVorbisCommentField.TrackNumber);
+        if (trackNumber == null)
+        {
+            return null;
+        }
+        int.TryParse(trackNumber, out var trackNumberInt); return trackNumberInt;
+    }
+    
+    public override string? GetTrackPerformer()
+    {
+        return ExtractVorbisComment(FlacVorbisCommentField.Performer);
     }
 
-    public override IEnumerable<MetadataPicture> RetrievePictures()
+    public override IEnumerable<MetadataPicture> GetPictures()
     {
         var pictureBlocks = FindCorrectMetadataSection(BlockType.Picture);
         return pictureBlocks.Select(ExtractMetadataPicture);
     }
 
-    public override MetadataPicture? RetrievePicture(MediaType type)
+    public override MetadataPicture? GetPicture(MediaType type)
     {
         var pictureBlocks = FindCorrectMetadataSection(BlockType.Picture);
         var bytesEnumerable = pictureBlocks.ToList();
@@ -98,7 +118,8 @@ public class FlacFile(FileStream data) : BaseFile(data)
         }
 
         var comments = ExtractVorbisComments(bytesEnumerable.First());
-        return comments[comment];
+        comments.TryGetValue(comment, out var value);
+        return value;
     }
 
     private static int ToBigEndian(byte[] data)

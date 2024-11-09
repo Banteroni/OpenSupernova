@@ -6,7 +6,7 @@ using OS.Services.Storage;
 
 namespace OS.Services.Tests.Codec;
 
-public class FfmpegTranscoderTest
+public class FfmpegTranscoderTest : IDisposable
 {
     private FfmpegTranscoder _ffmpegTranscoder;
     private IStorageService _storageService;
@@ -15,28 +15,20 @@ public class FfmpegTranscoderTest
     [SetUp]
     public void Setup()
     {
-        var localStoragePath = Environment.GetEnvironmentVariable("LOCAL_STORAGE_PATH");
-        if (localStoragePath == null)
+        try
         {
-            throw new DirectoryNotFoundException();
+            Directory.CreateDirectory("tmp");
+        }
+        catch (Exception ex)
+        {
+            throw new DirectoryNotFoundException("Couldn't create directory", ex);
         }
 
-        if (!Path.Exists(localStoragePath))
-        {
-            try
-            {
-                Directory.CreateDirectory(localStoragePath);
-            }
-            catch (Exception ex)
-            {
-                throw new DirectoryNotFoundException("Couldn't create directory", ex);
-            }
-        }
 
-        _localStorageTestingPath = localStoragePath;
+        _localStorageTestingPath = Path.Join(Directory.GetCurrentDirectory(), "tmp");
         var logger = new Mock<ILogger<FfmpegTranscoder>>();
         var storageLogger = new Mock<ILogger<LocalStorageService>>();
-        var options = new LocalStorageOptions(localStoragePath);
+        var options = new LocalStorageOptions(_localStorageTestingPath);
         var storageService = new LocalStorageService(storageLogger.Object, Options.Create(options));
         _storageService = storageService;
         _ffmpegTranscoder = new FfmpegTranscoder(logger.Object, _storageService);
@@ -50,17 +42,37 @@ public class FfmpegTranscoderTest
     }
 
     [Test]
-    public async Task EncodeFile()
+    public async Task TransCode()
     {
-        var path = Environment.GetEnvironmentVariable("FLAC_TRACK_PATH");
-        if (!Path.Exists(path))
-        {
-            throw new DirectoryNotFoundException();
-        }
-
-        var outputFolder = Path.Join(_localStorageTestingPath, "test.opus");
-        await _ffmpegTranscoder.TranscodeAsync(path, outputFolder, "opus", "libopus", 128, 48000, "2");
+        var flacFile = Path.Join(Directory.GetCurrentDirectory(), "dummy.flac");
+        var outputFolder = Path.Join(_localStorageTestingPath, "EncodeFile.opus");
+        await _ffmpegTranscoder.TranscodeAsync(flacFile, outputFolder, "opus", "libopus", 128, 48000, "2");
         var fileExists = await _storageService.FileExistsAsync(outputFolder);
         Assert.That(fileExists, Is.True);
+    }
+
+    [Test]
+    public async Task TranscodeFileWithWrongPath()
+    {
+        var flacFile = Path.Join(Directory.GetCurrentDirectory(), "dummyBad.flac");
+        var outputFolder = Path.Join(_localStorageTestingPath, "encode-wrong-path.opus");
+        await _ffmpegTranscoder.TranscodeAsync(flacFile, outputFolder, "opus", "libopus", 128, 48000, "2");
+        var fileExists = await _storageService.FileExistsAsync(outputFolder);
+        Assert.That(fileExists, Is.False);
+    }
+
+    [Test]
+    public async Task TranscodeWithBadSettings()
+    {
+        var flacFile = Path.Join(Directory.GetCurrentDirectory(), "dummy.flac");
+        var outputFolder = Path.Join(_localStorageTestingPath, "encode-wrong-settings.opus");
+        await _ffmpegTranscoder.TranscodeAsync(flacFile, outputFolder, "opus", "libopus", 960, 48000, "2");
+        var fileExists = await _storageService.FileExistsAsync(outputFolder);
+        Assert.That(fileExists, Is.False);
+    }
+
+    public void Dispose()
+    {
+        Directory.Delete("tmp", true);
     }
 }

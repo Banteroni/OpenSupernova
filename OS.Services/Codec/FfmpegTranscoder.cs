@@ -34,6 +34,12 @@ public class FfmpegTranscoder(ILogger<FfmpegTranscoder> logger, IStorageService 
         int sampleRate,
         string channels)
     {
+        if (!await _storageService.FileExistsAsync(inputPath))
+        {
+            _logger.LogError($"File {inputPath} does not exist");
+            return;
+        }
+        
         var process = new Process();
         process.StartInfo.FileName = "ffmpeg";
         process.StartInfo.Arguments =
@@ -46,9 +52,17 @@ public class FfmpegTranscoder(ILogger<FfmpegTranscoder> logger, IStorageService 
             process.Start();
             var response = await process.StandardOutput.ReadToEndAsync();
             await process.WaitForExitAsync();
-            if (!await _storageService.FileExistsAsync(outputPath)) throw new FileNotFoundException($"Transcoding was completed, however the file {outputPath} was not found");
-            _logger.LogInformation($"Transcoding complete, output: {response}");
+            if (!await _storageService.FileExistsAsync(outputPath))
+                throw new FileNotFoundException(
+                    $"Transcoding was completed, however the file {outputPath} was not found");
+
+            if (process.ExitCode != 0)
+            {
+                await _storageService.DeleteFileAsync(outputPath);
+                throw new Exception($"Transcoding failed, exit code: {process.ExitCode}");
+            }
             
+            _logger.LogInformation($"Transcoding complete, output: {response}");
         }
         catch (Exception ex)
         {

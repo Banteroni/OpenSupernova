@@ -3,8 +3,8 @@
 public class Track : BaseModel
 {
      public required string Name;
-     public required string Duration;
-     public int Number;
+     public int? Duration;
+     public int? Number;
      public string? FilePath;
      public Guid AlbumId;
      

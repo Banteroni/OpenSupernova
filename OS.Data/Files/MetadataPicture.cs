@@ -11,25 +11,12 @@ public class MetadataPicture(
     public readonly MediaType Type = type;
     public readonly string MimeType = mimeType;
     public readonly string Description = description;
-    private readonly MemoryStream _data = data;
+    public readonly MemoryStream Data = data;
     public readonly int Width = width;
     public readonly int Height = height;
 
-    public async void Save(string path)
-    {
-        try
-        {
-            await using var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write);
-            await _data.CopyToAsync(fileStream);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e.Message);
-        }
-    }
-
     public void Dispose()
     {
-        _data.Dispose();
+        Data.Dispose();
     }
 }
