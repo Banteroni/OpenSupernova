@@ -2,10 +2,9 @@
 
 public abstract class BaseFile(FileStream data) : IDisposable
 {
-    internal readonly FileStream Data = data;
+    protected readonly FileStream Data = data;
 
     public void Dispose() => Data.Dispose();
-
     public abstract bool IsCorrectFormat();
 
     public abstract string? RetrieveAlbumName();
