@@ -1,6 +1,6 @@
-﻿namespace OS.Services.Metadata;
+﻿namespace OS.Data.Files;
 
-public enum FlacMediaType
+public enum MediaType
 {
     Other = 0,
     FileIcon32X32 = 1,

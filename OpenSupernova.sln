@@ -2,7 +2,9 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OS.Services", "OS.Services\OS.Services.csproj", "{1AE59B7B-35A4-4792-AB91-EACE67096DD1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OS.Services.Tests", "OS.Services.Tests\OS.Services.Tests.csproj", "{AB0CA167-EC59-4FC5-8378-EBAFF604521C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OS.Data.Tests", "OS.Data.Tests\OS.Data.Tests.csproj", "{AB0CA167-EC59-4FC5-8378-EBAFF604521C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OS.Data", "OS.Data\OS.Data.csproj", "{9E483223-323B-414D-9901-EE5079B05838}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,5 +20,9 @@ Global
 		{AB0CA167-EC59-4FC5-8378-EBAFF604521C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AB0CA167-EC59-4FC5-8378-EBAFF604521C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AB0CA167-EC59-4FC5-8378-EBAFF604521C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9E483223-323B-414D-9901-EE5079B05838}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E483223-323B-414D-9901-EE5079B05838}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E483223-323B-414D-9901-EE5079B05838}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E483223-323B-414D-9901-EE5079B05838}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

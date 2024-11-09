@@ -1,19 +1,18 @@
-﻿using OS.Services.Metadata;
+﻿using OS.Data.Files;
 
-namespace OS.Services.Tests.Metadata;
+namespace OS.Data.Tests.Files;
 
 [TestFixture]
-public class FlacLocalMetadataServiceTest
+public class FlacFileTest : IDisposable
 {
-    private FlacLocalMetadataService _flacLocalMetadataService;
-    private FileStream _flacStream;
+
+    private FlacFile _flacFile;
+    
 
     [SetUp]
     public void Setup()
     {
-        _flacLocalMetadataService = new FlacLocalMetadataService();
         var path = Environment.GetEnvironmentVariable("FLAC_TRACK_PATH");
-        // Check if file exists
         if (!Path.Exists(path))
         {
             throw new DirectoryNotFoundException();
@@ -25,41 +24,47 @@ public class FlacLocalMetadataServiceTest
             throw new Exception("Can't read stream");
         }
 
-        _flacStream = stream;
+        _flacFile = new FlacFile(stream);
+
     }
 
     [Test]
     public void RetrieveTrackTitle()
     {
-        var title = _flacLocalMetadataService.RetrieveTrackTitle(_flacStream);
+        var title = _flacFile.RetrieveTrackTitle();
         Assert.That(title, Is.Not.Null);
     }
 
     [Test]
     public void RetrieveAlbumArtist()
     {
-        var albumArtist = _flacLocalMetadataService.RetrieveAlbumArtist(_flacStream);
+        var albumArtist = _flacFile.RetrieveAlbumArtist();
         Assert.That(albumArtist, Is.Not.Null);
     }
 
     [Test]
     public void RetrieveAlbumName()
     {
-        var albumArtist = _flacLocalMetadataService.RetrieveAlbumName(_flacStream);
+        var albumArtist = _flacFile.RetrieveAlbumName();
         Assert.That(albumArtist, Is.Not.Null);
     }
 
     [Test]
     public void RetrieveTrackNumber()
     {
-        var trackNumber = _flacLocalMetadataService.RetrieveTrackNumber(_flacStream);
+        var trackNumber = _flacFile.RetrieveTrackNumber();
         Assert.That(trackNumber, Is.Not.Null);
     }
 
     [Test]
     public void RetrievePicture()
     {
-        var picture = _flacLocalMetadataService.RetrievePicture(_flacStream);
-        Assert.That(picture, Is.Not.Null);
+        var pictures = _flacFile.RetrievePictures();
+        Assert.That(pictures.Count(), Is.GreaterThan(0));
+    }
+
+    public void Dispose()
+    {
+        _flacFile.Dispose();
     }
 }
