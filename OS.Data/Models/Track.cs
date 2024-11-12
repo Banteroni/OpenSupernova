@@ -2,13 +2,13 @@
 
 public class Track : BaseModel
 {
-     public required string Name;
-     public int? Duration;
-     public int? Number;
-     public string? FilePath;
-     public Guid AlbumId;
-     
-     // Navigation properties
-     public Album Album { get; }
-     public List<Transcode> TranscodedFiles { get; }
+    public required string Name { get; set; }
+    public int? Duration { get; set; }
+    public int? Number { get; set; }
+    public string? FileObject;
+    public string? TranscodeObject;
+    public Guid AlbumId;
+
+    // Navigation properties
+    public Album Album { get; }
 }

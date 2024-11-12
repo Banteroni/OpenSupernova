@@ -14,10 +14,8 @@ public class ImportTracksJob(
     ITempStorageService tempStorageService,
     IRepository.IRepository repository) : BaseJob(logger, storageService, tempStorageService, repository)
 {
-    public override string Name { get; init; } = nameof(ImportTracksJob);
-    public override string Group { get; init; } = "ImportGroup";
 
-    public override async Task<bool> ExecuteJob(IJobExecutionContext context)
+    protected override async Task<bool> ExecuteJob(IJobExecutionContext context)
     {
         var jobData = context.JobDetail.JobDataMap;
         var fileName = jobData.GetString("fileName");
@@ -131,4 +129,5 @@ public class ImportTracksJob(
         }
         return true;
     }
+    
 }

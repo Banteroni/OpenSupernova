@@ -6,13 +6,14 @@ namespace OS.Data.Tests.Files;
 public class FlacFileTest : IDisposable
 {
     private FlacFile _flacFile;
+    private FileStream _stream;
 
 
     [SetUp]
     public void Setup()
     {
-        using var stream = new FileStream("./dummy.flac", FileMode.Open, FileAccess.Read, FileShare.Read);
-        _flacFile = new FlacFile(stream);
+        _stream = new FileStream("./dummy.flac", FileMode.Open, FileAccess.Read, FileShare.Read);
+        _flacFile = new FlacFile(_stream);
     }
 
     [Test]
@@ -67,5 +68,6 @@ public class FlacFileTest : IDisposable
     public void Dispose()
     {
         _flacFile.Dispose();
+        _stream.Dispose();
     }
 }

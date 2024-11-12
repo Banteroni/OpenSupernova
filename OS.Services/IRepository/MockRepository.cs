@@ -8,21 +8,21 @@ public class MockRepository : IRepository
     [
         new Artist()
         {
-            Id = Guid.Parse("246edfd0-1938-4fa8-8619-7597c9f03013"),
+            Id = Guid.Parse("58a37044-9560-4c7e-8d7f-a904a635b83f"),
             Name = "Oasis",
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         },
         new Artist()
         {
-            Id = Guid.Parse("a6175e05-58ca-4b72-8139-87cbc052c88a"),
+            Id = Guid.Parse("78084a3e-ab23-464d-9cb4-72080f57a22d"),
             Name = "Blur",
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         },
         new Artist()
         {
-            Id = Guid.Parse("r3455e05-58ca-4b72-8139-12cva052c88a"),
+            Id = Guid.Parse("5e2c6162-fbb9-472c-8c00-d09eb45c041f"),
             Name = "Unknown",
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
@@ -37,7 +37,7 @@ public class MockRepository : IRepository
             Name = "Be Here Now",
             Genre = "Rock",
             Year = 1997,
-            ArtistId = Guid.Parse("246edfd0-1938-4fa8-8619-7597c9f03013"),
+            ArtistId = Guid.Parse("58a37044-9560-4c7e-8d7f-a904a635b83f"),
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         },
@@ -47,7 +47,7 @@ public class MockRepository : IRepository
             Name = "Definitely Maybe",
             Genre = "Indie Rock",
             Year = 1994,
-            ArtistId = Guid.Parse("246edfd0-1938-4fa8-8619-7597c9f03013"),
+            ArtistId = Guid.Parse("58a37044-9560-4c7e-8d7f-a904a635b83f"),
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         },
@@ -57,7 +57,7 @@ public class MockRepository : IRepository
             Name = "The Great Escape",
             Genre = "Britpop",
             Year = 1995,
-            ArtistId = Guid.Parse("a6175e05-58ca-4b72-8139-87cbc052c88a"),
+            ArtistId = Guid.Parse("78084a3e-ab23-464d-9cb4-72080f57a22d"),
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         }
@@ -116,7 +116,20 @@ public class MockRepository : IRepository
 
     public Task<IEnumerable<Album>> GetAlbumsAsync(string? title = null, int? year = null, string? artist = null)
     {
-        return Task.FromResult(_albums.Where(a => title != null && a.Name == title  || year != null && a.Year == year || artist != null && a.Artist.Name == artist).AsEnumerable());
+        var queriedAlbums = _albums
+            .Where(a =>
+                (title == null || a.Name == title) &&
+                (year == null || a.Year == year) &&
+                (artist == null || a.Artist.Name == artist)).ToList();
+        
+        for (var i = 0; i < queriedAlbums.Count; i++)
+        {
+            var album = queriedAlbums[i];
+            album.Artist = _artists.First(a => a.Id == album.ArtistId);
+            album.Tracks = _tracks.Where(t => t.AlbumId == album.Id).ToList();
+        }
+        
+        return Task.FromResult(queriedAlbums.AsEnumerable());
     }
 
     public Task<Artist?> GetArtistAsync(Guid id)

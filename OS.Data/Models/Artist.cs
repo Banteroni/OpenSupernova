@@ -2,9 +2,9 @@
 
 public class Artist : BaseModel
 {
-    public required string Name;
-    public string? Bio;
-    public string? ImagePath;
+    public required string Name { get; set; }
+    public string? Bio { get; set; }
+    public string? ImagePath { get; set; }
     
     // Navigation properties
     public List<Album> Albums { get; }

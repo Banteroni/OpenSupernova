@@ -10,8 +10,6 @@ public abstract class BaseJob(
     ITempStorageService tempStorageService,
     IRepository.IRepository repository) : IJob
 {
-    public abstract string Name { get; init; }
-    public abstract string Group { get; init; }
     protected readonly ILogger<BaseJob> Logger = logger;
     protected readonly IStorageService StorageService = storageService;
     protected readonly ITempStorageService TempStorageService = tempStorageService;
@@ -19,11 +17,10 @@ public abstract class BaseJob(
 
     public async Task Execute(IJobExecutionContext context)
     {
-        Logger.LogInformation($"Executing job {Name}");
+        Logger.LogInformation($"Executing job {context.JobDetail.Key.Name}");
         var result = await ExecuteJob(context);
-        Logger.LogInformation($"Job {Name} executed with result {result}");
-        return;
+        Logger.LogInformation($"Job {context.JobDetail.Key.Name} executed with result {result}");
     }
 
-    public abstract Task<bool> ExecuteJob(IJobExecutionContext context);
+    protected abstract Task<bool> ExecuteJob(IJobExecutionContext context);
 }
