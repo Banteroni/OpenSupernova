@@ -1,10 +1,9 @@
 ﻿namespace OS.Data.Files;
 
-public abstract class BaseFile(FileStream data) : IDisposable
+public abstract class BaseFile(byte[] data)
 {
-    protected readonly FileStream Data = data;
-
-    public void Dispose() => Data.Dispose();
+    protected readonly byte[] Data = data;
+    
     public abstract bool IsCorrectFormat();
 
     public abstract string? GetAlbumGenre();

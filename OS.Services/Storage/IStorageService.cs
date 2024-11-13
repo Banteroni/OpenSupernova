@@ -2,7 +2,7 @@
 
 public interface IStorageService
 {
-    public Task<bool> SaveFileAsync(Stream stream, string objectName);
+    public Task<bool> SaveFileAsync(byte[] stream, string objectName);
 
     public Task<FileStream?> GetFileAsync(string objectName);
 

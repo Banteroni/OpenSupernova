@@ -1,48 +1,52 @@
-﻿using System.IO.Compression;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using OS.Data.Files;
 using OS.Data.Models;
+using OS.Services.Repository;
 using OS.Services.Storage;
 using Quartz;
-using System.Linq;
 
 namespace OS.Services.Jobs;
 
 public class ImportTracksJob(
-    ILogger<BaseJob> logger,
+    ILogger<ImportTracksJob> logger,
     IStorageService storageService,
     ITempStorageService tempStorageService,
-    IRepository.IRepository repository) : BaseJob(logger, storageService, tempStorageService, repository)
+    IRepository repository) : IJob
 {
+    private readonly ILogger<ImportTracksJob> _logger = logger;
+    private readonly IStorageService _storageService = storageService;
+    private readonly ITempStorageService _tempStorageService = tempStorageService;
+    private readonly IRepository _repository = repository;
 
-    protected override async Task<bool> ExecuteJob(IJobExecutionContext context)
+
+    public async Task Execute(IJobExecutionContext context)
     {
         var jobData = context.JobDetail.JobDataMap;
         var fileName = jobData.GetString("fileName");
         if (string.IsNullOrEmpty(fileName))
         {
-            Logger.LogError("File path is empty");
-            return false;
+            _logger.LogError("File path is empty");
+            return;
         }
 
-        if (!await TempStorageService.FileExistsAsync(fileName))
+        if (!await _tempStorageService.FileExistsAsync(fileName))
         {
-            Logger.LogError($"File {fileName} does not exist");
-            return false;
+            _logger.LogError($"File {fileName} does not exist");
+            return;
         }
 
-        var fileStream = await TempStorageService.GetFileAsync(fileName);
+        var fileStream = await _tempStorageService.GetFileAsync(fileName);
         if (fileStream == null)
         {
-            Logger.LogError($"Failed to get file {fileName}");
-            return false;
+            _logger.LogError($"Failed to get file {fileName}");
+            return;
         }
 
         var filesToProcess = new List<string>();
         // If the file is zip archive, extract it
         if (Path.GetExtension(fileName) == ".zip")
         {
-            var filesExtracted = await TempStorageService.ExtractZipAsync(fileName);
+            var filesExtracted = await _tempStorageService.ExtractZipAsync(fileName);
             filesToProcess = filesExtracted.ToList();
         }
         else
@@ -54,8 +58,16 @@ public class ImportTracksJob(
         {
             try
             {
-                await using var fileReader = new FileStream(file, FileMode.Open, FileAccess.Read);
-                using var trackFile = new FlacFile(fileReader);
+                await using var fileReader = await tempStorageService.GetFileAsync(file);
+                if (fileReader == null)
+                {
+                    _logger.LogError($"Failed to get file {file}, skipping");
+                    continue;
+                }
+                // get bytes 
+                var trackBytes = new byte[fileReader.Length];
+                await fileReader.ReadAsync(trackBytes.AsMemory(0, trackBytes.Length));
+                var trackFile = new FlacFile(trackBytes);
                 var title = trackFile.GetTrackTitle();
                 var number = trackFile.GetTrackNumber();
                 var artistName = trackFile.GetTrackArtist();
@@ -65,19 +77,19 @@ public class ImportTracksJob(
                 var albumArtist = trackFile.GetAlbumArtist();
                 if (title == null)
                 {
-                    Logger.LogError($"Failed to get title from file {file}, skipping");
+                    _logger.LogError($"Failed to get title from file {file}, skipping");
                     continue;
                 }
 
                 Artist artist;
                 if (artistName == null)
                 {
-                    artist = await Repository.GetUnknownArtistAsync();
+                    artist = await _repository.GetUnknownArtistAsync();
                 }
                 else
                 {
-                    var artistsInDb = (await Repository.GetArtistsAsync(artistName)).ToList();
-                    artist = artistsInDb.FirstOrDefault() ?? await Repository.CreateArtistAsync(new Artist()
+                    var artistsInDb = (await _repository.GetArtistsAsync(artistName)).ToList();
+                    artist = artistsInDb.FirstOrDefault() ?? await _repository.CreateArtistAsync(new Artist()
                     {
                         Name = artistName
                     });
@@ -85,20 +97,20 @@ public class ImportTracksJob(
 
                 Album album;
                 if (albumName == null) continue;
-                var albumsInDb = (await Repository.GetAlbumsAsync(albumName, albumYear, albumArtist)).ToList();
+                var albumsInDb = (await _repository.GetAlbumsAsync(albumName, albumYear, albumArtist)).ToList();
                 if (albumsInDb.Count == 0)
                 {
                     Guid albumId = Guid.NewGuid();
                     // Get picture from the file
-                    using var cover = trackFile.GetPicture(MediaType.CoverFront);
+                    var cover = trackFile.GetPicture(MediaType.CoverFront);
 
                     if (cover != null)
                     {
-                        await StorageService.SaveFileAsync(cover.Data, $"{albumId}_cover");
+                        await _storageService.SaveFileAsync(cover.Data, $"{albumId}_cover");
                     }
 
 
-                    album = await Repository.CreateAlbumAsync(new Album()
+                    album = await _repository.CreateAlbumAsync(new Album()
                     {
                         Name = albumName,
                         Year = albumYear,
@@ -111,23 +123,19 @@ public class ImportTracksJob(
                 {
                     album = albumsInDb.FirstOrDefault()!;
                 }
-                
-                var track = await Repository.CreateTrackAsync(new Track()
+
+                var track = await _repository.CreateTrackAsync(new Track()
                 {
                     Name = title,
                     Number = number,
                     AlbumId = album.Id,
                 });
-                Logger.LogInformation($"Track {track.Name} added to the database");
-                return true;
+                _logger.LogInformation($"Track {track.Name} added to the database");
             }
             catch (Exception e)
             {
-                Logger.LogError(e, $"Failed to process file {file}, skipping");
-                return false;
+                _logger.LogError(e, $"Failed to process file {file}, skipping");
             }
         }
-        return true;
     }
-    
 }

@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using Microsoft.AspNetCore.Mvc;
-using OS.Services.IRepository;
+using OS.Services.Repository;
 
 namespace OS.API.Controllers;
 

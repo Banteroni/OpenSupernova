@@ -28,8 +28,7 @@ public class FfmpegTranscoderTest : IDisposable
         _localStorageTestingPath = Path.Join(Directory.GetCurrentDirectory(), "tmp");
         var logger = new Mock<ILogger<FfmpegTranscoder>>();
         var storageLogger = new Mock<ILogger<LocalStorageService>>();
-        var options = new LocalStorageOptions(_localStorageTestingPath);
-        var storageService = new LocalStorageService(storageLogger.Object, Options.Create(options));
+        var storageService = new LocalStorageService(storageLogger.Object, _localStorageTestingPath);
         _storageService = storageService;
         _ffmpegTranscoder = new FfmpegTranscoder(logger.Object, _storageService);
     }

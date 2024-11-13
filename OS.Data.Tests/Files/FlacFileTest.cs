@@ -13,7 +13,9 @@ public class FlacFileTest : IDisposable
     public void Setup()
     {
         _stream = new FileStream("./dummy.flac", FileMode.Open, FileAccess.Read, FileShare.Read);
-        _flacFile = new FlacFile(_stream);
+        var buffer = new byte[_stream.Length];
+        _stream.Read(buffer, 0, (int)_stream.Length);
+        _flacFile = new FlacFile(buffer);
     }
 
     [Test]
@@ -21,6 +23,15 @@ public class FlacFileTest : IDisposable
     {
         var title = _flacFile.GetTrackTitle();
         Assert.That(title, Is.Not.Null);
+    }
+
+    [Test]
+    public void RetrieveTwoProperties()
+    {
+        var title = _flacFile.GetTrackTitle();
+        var artist = _flacFile.GetTrackArtist();
+        Assert.That(title, Is.Not.Null);
+        Assert.That(artist, Is.Not.Null);
     }
 
     [Test]
@@ -67,7 +78,6 @@ public class FlacFileTest : IDisposable
 
     public void Dispose()
     {
-        _flacFile.Dispose();
         _stream.Dispose();
     }
 }

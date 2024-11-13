@@ -1,4 +1,7 @@
-using OS.Services.IRepository;
+using OS.API;
+using OS.Data.Options;
+using OS.Services.Repository;
+using Quartz;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +11,13 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddLogging();
+
+StorageSettings storageSettings = new();
+builder.Configuration.GetSection("StorageSettings").Bind(storageSettings);
+builder.Services.AddStorage(storageSettings);
+
+builder.Services.AddQuartz();
+
 
 if (builder.Environment.IsDevelopment())
 {

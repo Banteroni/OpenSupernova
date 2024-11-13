@@ -1,6 +1,6 @@
 ﻿using OS.Data.Models;
 
-namespace OS.Services.IRepository;
+namespace OS.Services.Repository;
 
 public class SqlRepository : IRepository
 {

@@ -9,35 +9,34 @@ public class LocalStorageService : IStorageService, ITempStorageService
     private readonly ILogger<LocalStorageService> _logger;
     private readonly string _path;
 
-    public LocalStorageService(ILogger<LocalStorageService> logger, IOptions<LocalStorageOptions> options)
+    public LocalStorageService(ILogger<LocalStorageService> logger, string path)
     {
         _logger = logger;
-        var pathInOptions = options.Value.Path;
+        path = Path.Combine(Directory.GetCurrentDirectory(), path);
         // Check if directory exists
-        if (!Directory.Exists(pathInOptions))
+        if (!Directory.Exists(path))
         {
             try
             {
-                Directory.CreateDirectory(pathInOptions);
+                Directory.CreateDirectory(path);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Failed to create directory {pathInOptions}, {ex}");
+                _logger.LogError($"Failed to create directory {path}, {ex}");
                 throw new DirectoryNotFoundException();
             }
         }
 
-        _path = pathInOptions;
+        _path = path;
     }
 
-    public async Task<bool> SaveFileAsync(Stream stream, string objectName)
+    public async Task<bool> SaveFileAsync(byte[] bytes, string objectName)
     {
         var fullPath = Path.Combine(_path, objectName);
 
         try
         {
-            await using var fileStream = File.Create(fullPath);
-            await stream.CopyToAsync(fileStream);
+            await File.WriteAllBytesAsync(fullPath, bytes);
             return true;
         }
         catch (Exception ex)
@@ -53,7 +52,7 @@ public class LocalStorageService : IStorageService, ITempStorageService
 
         try
         {
-            var fileStream = File.OpenRead(objectName);
+            var fileStream = File.OpenRead(fullPath);
             return Task.FromResult<FileStream?>(fileStream);
         }
         catch (Exception ex)

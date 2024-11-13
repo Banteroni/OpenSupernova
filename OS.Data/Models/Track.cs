@@ -6,7 +6,6 @@ public class Track : BaseModel
     public int? Duration { get; set; }
     public int? Number { get; set; }
     public string? FileObject;
-    public string? TranscodeObject;
     public Guid AlbumId;
 
     // Navigation properties

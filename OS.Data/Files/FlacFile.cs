@@ -1,8 +1,9 @@
 ﻿using System.Text;
+using OS.Data.Models;
 
 namespace OS.Data.Files;
 
-public class FlacFile(FileStream data) : BaseFile(data)
+public class FlacFile(byte[] data) : BaseFile(data)
 {
     private enum BlockType
     {
@@ -17,10 +18,9 @@ public class FlacFile(FileStream data) : BaseFile(data)
 
     public override bool IsCorrectFormat()
     {
-        using var binaryReader = new BinaryReader(Data);
 
         // Check if first 4 bytes equals "fLaC"
-        var flacHeader = binaryReader.ReadBytes(4);
+        var flacHeader =  Data.Take(4).ToArray();
         return Encoding.UTF8.GetString(flacHeader) == "fLaC";
     }
 
@@ -36,12 +36,14 @@ public class FlacFile(FileStream data) : BaseFile(data)
 
     public override int? GetAlbumYear()
     {
-        var year =  ExtractVorbisComment(FlacVorbisCommentField.Year);
+        var year = ExtractVorbisComment(FlacVorbisCommentField.Year);
         if (year == null)
         {
             return null;
         }
-        int.TryParse(year, out var yearInt); return yearInt;
+
+        int.TryParse(year, out var yearInt);
+        return yearInt;
     }
 
     public override string? GetAlbumArtist()
@@ -61,14 +63,16 @@ public class FlacFile(FileStream data) : BaseFile(data)
 
     public override int? GetTrackNumber()
     {
-        var trackNumber =  ExtractVorbisComment(FlacVorbisCommentField.TrackNumber);
+        var trackNumber = ExtractVorbisComment(FlacVorbisCommentField.TrackNumber);
         if (trackNumber == null)
         {
             return null;
         }
-        int.TryParse(trackNumber, out var trackNumberInt); return trackNumberInt;
+
+        int.TryParse(trackNumber, out var trackNumberInt);
+        return trackNumberInt;
     }
-    
+
     public override string? GetTrackPerformer()
     {
         return ExtractVorbisComment(FlacVorbisCommentField.Performer);
@@ -105,7 +109,8 @@ public class FlacFile(FileStream data) : BaseFile(data)
         var colorCount = ToBigEndian(pictureBinaryReader.ReadBytes(4));
         var pictureLength = ToBigEndian(pictureBinaryReader.ReadBytes(4));
         using var data = new MemoryStream(pictureBinaryReader.ReadBytes(pictureLength));
-        return new MetadataPicture(pictureType, mimeType, description, data, width, height);
+        var dataBytes = data.ToArray();
+        return new MetadataPicture(pictureType, mimeType, description, dataBytes, width, height);
     }
 
     private string? ExtractVorbisComment(string comment)
@@ -165,7 +170,9 @@ public class FlacFile(FileStream data) : BaseFile(data)
     private IEnumerable<byte[]> FindCorrectMetadataSection(BlockType wantedBlockType)
     {
         List<byte[]> metadata = [];
-        using var binaryReader = new BinaryReader(Data);
+        // Create a binary reader for the data
+        using var memStream = new MemoryStream(Data);
+        using var binaryReader = new BinaryReader(memStream);
 
         // Skip the first 4 bytes for flac validation
         binaryReader.BaseStream.Seek(4, SeekOrigin.Begin);

@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using Microsoft.AspNetCore.Mvc;
-using OS.Services.IRepository;
+using OS.Services.Repository;
 using OS.Services.Jobs;
 using OS.Services.Storage;
 using Quartz;
@@ -11,15 +11,14 @@ namespace OS.API.Controllers;
 [Route("api/[controller]")]
 public class TrackController(
     IRepository repository,
-    ITranscodeStorageService transcodeStorageService,
     ITempStorageService tempStorageService,
-    IStorageService storageService, IScheduler scheduler) : Controller
+    IStorageService storageService,
+    ISchedulerFactory schedulerFactory) : Controller
 {
     private readonly IRepository _repository = repository;
-    private readonly ITranscodeStorageService _transcodeStorageService = transcodeStorageService;
     private readonly ITempStorageService _tempStorageService = tempStorageService;
     private readonly IStorageService _storageService = storageService;
-    private readonly IScheduler _scheduler = scheduler;
+    private readonly ISchedulerFactory _schedulerFactory = schedulerFactory;
 
     [HttpGet]
     public async Task<IActionResult> GetTracks([FromQuery] [Optional] Guid albumId,
@@ -60,12 +59,12 @@ public class TrackController(
             return NotFound();
         }
 
-        if (track.TranscodeObject == null)
+        if (track.FileObject == null)
         {
             return NotFound("Track has not been transcoded yet");
         }
 
-        var stream = await _transcodeStorageService.GetFileAsync(track.TranscodeObject);
+        var stream = await _storageService.GetFileAsync(track.FileObject);
 
         if (stream == null)
         {
@@ -75,73 +74,55 @@ public class TrackController(
         return File(stream, "audio/opus");
     }
 
-    [HttpGet("{id}/download")]
-    public async Task<IActionResult> DownloadTrack([FromRoute] Guid id)
-    {
-        var track = await _repository.GetTrackAsync(id);
-        if (track == null)
-        {
-            return NotFound();
-        }
-
-        if (track.FileObject == null)
-        {
-            return NotFound("Track has not been uploaded yet");
-        }
-
-        var stream = await _storageService.GetFileAsync(track.FileObject);
-
-        if (stream == null)
-        {
-            return NotFound("File not found");
-        }
-
-        return File(stream, "audio/flac", track.Name + ".flac");
-    }
-
     [HttpPost]
-    public async Task<IActionResult> Upload([FromBody] IFormFile? file)
+    public async Task<IActionResult> Upload([FromForm]string description, [FromForm]DateTime clientDate, IFormFile file)
     {
-        
         if (file == null)
         {
             return BadRequest("No file provided");
         }
-        if (file.Headers.ContentType != "audio/flac" && file.Headers.ContentType != "application/zip")
+
+        if (file.Headers.ContentType != "audio/flac" && file.Headers.ContentType != "application/zip" && file.Headers.ContentType != "audio/x-flac")
         {
             return BadRequest("Invalid content type");
         }
-        
+
         await using var stream = file.OpenReadStream();
+        var buffer = new byte[stream.Length];
+        await stream.ReadAsync(buffer.AsMemory(0, buffer.Length));
         var tempObject = Guid.NewGuid().ToString();
         try
         {
-            var operationCompleted = await _tempStorageService.SaveFileAsync(stream, tempObject);
+            var operationCompleted = await _tempStorageService.SaveFileAsync(buffer, tempObject);
             if (!operationCompleted)
             {
                 return BadRequest("Failed to save file, view logs for more information");
             }
-            
+
             var jobData = new JobDataMap();
             jobData.Add("fileName", tempObject);
-            
+
             var job = JobBuilder.Create<ImportTracksJob>()
                 .WithIdentity("ImportTracks", "ImportGroup")
                 .UsingJobData(jobData)
                 .Build();
-            
+
             var trigger = TriggerBuilder.Create()
                 .WithIdentity("ImportTracksTrigger", "ImportGroup")
                 .StartNow()
                 .Build();
-            
-            await _scheduler.ScheduleJob(job, trigger);
-            return NoContent();
+
+            var scheduler = await _schedulerFactory.GetScheduler();
+            if (!scheduler.IsStarted)
+            {
+                await scheduler.Start();
+            }
+            await scheduler.ScheduleJob(job, trigger);
+            return Ok();
         }
         catch (Exception e)
         {
             return BadRequest(e.Message);
         }
- 
     }
 }
