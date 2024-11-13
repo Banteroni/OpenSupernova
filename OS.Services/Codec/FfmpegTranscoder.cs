@@ -1,13 +1,16 @@
 ﻿using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using OS.Data.Options;
 using OS.Services.Storage;
 
 namespace OS.Services.Codec;
 
-public class FfmpegTranscoder(ILogger<FfmpegTranscoder> logger, IStorageService storageService) : ITranscoder
+public class FfmpegTranscoder(ILogger<FfmpegTranscoder> logger, IStorageService storageService, ITempStorageService tempStorageService, TranscodeSettings transcodeSettings) : ITranscoder
 {
     private readonly ILogger<FfmpegTranscoder> _logger = logger;
     private readonly IStorageService _storageService = storageService;
+    private readonly ITempStorageService _tempStorageService = tempStorageService;
+    private readonly TranscodeSettings _transcodeSettings = transcodeSettings;
 
     public async Task<bool> AreDependenciesInstalled()
     {
@@ -30,20 +33,19 @@ public class FfmpegTranscoder(ILogger<FfmpegTranscoder> logger, IStorageService 
         }
     }
 
-    public async Task TranscodeAsync(string inputPath, string outputPath, string format, string codec, int bitrate,
-        int sampleRate,
-        string channels)
+    public async Task TranscodeAsync(string inputObject, string outputObject)
     {
-        if (!await _storageService.FileExistsAsync(inputPath))
+        if (!await _tempStorageService.FileExistsAsync(inputObject))
         {
-            _logger.LogError($"File {inputPath} does not exist");
+            _logger.LogError($"File {inputObject} does not exist");
             return;
         }
-        
+        var tempInputLocation = Path.Combine(_tempStorageService.GetPath(), inputObject);
+        var tempOutputLocation = Path.Combine(_tempStorageService.GetPath(), outputObject);
         var process = new Process();
         process.StartInfo.FileName = "ffmpeg";
         process.StartInfo.Arguments =
-            $"-y -i {inputPath} -f {format} -c:a {codec} -b:a {bitrate}k -ar {sampleRate} -ac {channels} {outputPath}";
+            $"-y -i {tempInputLocation} -f {_transcodeSettings.Format} -c:a {_transcodeSettings.Codec} -b:a {_transcodeSettings.BitrateKbps}k -ar {_transcodeSettings.SampleRate} -ac {_transcodeSettings.Channels} {tempOutputLocation}";
         process.StartInfo.RedirectStandardOutput = true;
         process.StartInfo.RedirectStandardError = true;
         process.StartInfo.UseShellExecute = false;
@@ -52,21 +54,30 @@ public class FfmpegTranscoder(ILogger<FfmpegTranscoder> logger, IStorageService 
             process.Start();
             var response = await process.StandardOutput.ReadToEndAsync();
             await process.WaitForExitAsync();
-            if (!await _storageService.FileExistsAsync(outputPath))
+            if (!await _tempStorageService.FileExistsAsync(tempOutputLocation))
                 throw new FileNotFoundException(
-                    $"Transcoding was completed, however the file {outputPath} was not found");
+                    $"Transcoding was completed, however the file {tempOutputLocation} was not found");
 
             if (process.ExitCode != 0)
             {
-                await _storageService.DeleteFileAsync(outputPath);
+                await _tempStorageService.DeleteFileAsync(tempOutputLocation);
                 throw new Exception($"Transcoding failed, exit code: {process.ExitCode}");
             }
             
-            _logger.LogInformation($"Transcoding complete, output: {response}");
+            // get byte array from file
+            var bytes = await File.ReadAllBytesAsync(tempOutputLocation);
+
+            var isFileStored = await _storageService.SaveFileAsync(bytes, outputObject);
+            if (!isFileStored)
+                throw new Exception($"Failed to store file {outputObject}");
+            
+            await _tempStorageService.DeleteFileAsync(tempOutputLocation);
+            await _tempStorageService.DeleteFileAsync(inputObject);
+            _logger.LogInformation($"Transcoding complete");
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Failed to encode file {inputPath}, {ex}");
+            _logger.LogError($"Failed to encode file {inputObject}, {ex}");
         }
     }
 }

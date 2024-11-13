@@ -1,5 +1,6 @@
 using OS.API;
 using OS.Data.Options;
+using OS.Services.Codec;
 using OS.Services.Repository;
 using Quartz;
 
@@ -13,8 +14,12 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddLogging();
 
 StorageSettings storageSettings = new();
+TranscodeSettings transcodeSettings = new();
+builder.Configuration.GetSection("TranscodeSettings").Bind(transcodeSettings);
 builder.Configuration.GetSection("StorageSettings").Bind(storageSettings);
 builder.Services.AddStorage(storageSettings);
+builder.Services.AddSingleton<ITranscoder, FfmpegTranscoder>(x =>
+    ActivatorUtilities.CreateInstance<FfmpegTranscoder>(x, transcodeSettings));
 
 builder.Services.AddQuartz();
 

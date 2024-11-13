@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using OS.Data.Files;
 using OS.Data.Models;
+using OS.Services.Codec;
 using OS.Services.Repository;
 using OS.Services.Storage;
 using Quartz;
@@ -11,11 +12,13 @@ public class ImportTracksJob(
     ILogger<ImportTracksJob> logger,
     IStorageService storageService,
     ITempStorageService tempStorageService,
+    ITranscoder transcoderService,
     IRepository repository) : IJob
 {
     private readonly ILogger<ImportTracksJob> _logger = logger;
     private readonly IStorageService _storageService = storageService;
     private readonly ITempStorageService _tempStorageService = tempStorageService;
+    private readonly ITranscoder _transcoder = transcoderService;
     private readonly IRepository _repository = repository;
 
 
@@ -58,15 +61,18 @@ public class ImportTracksJob(
         {
             try
             {
-                await using var fileReader = await tempStorageService.GetFileAsync(file);
+                await using var fileReader = await _tempStorageService.GetFileAsync(file);
                 if (fileReader == null)
                 {
                     _logger.LogError($"Failed to get file {file}, skipping");
                     continue;
                 }
-                // get bytes 
-                var trackBytes = new byte[fileReader.Length];
-                await fileReader.ReadAsync(trackBytes.AsMemory(0, trackBytes.Length));
+
+                // Transcoding
+                await _transcoder.TranscodeAsync(file, file + ".opus");
+
+                // Metadata
+                var trackBytes = await File.ReadAllBytesAsync(file);
                 var trackFile = new FlacFile(trackBytes);
                 var title = trackFile.GetTrackTitle();
                 var number = trackFile.GetTrackNumber();
@@ -81,6 +87,7 @@ public class ImportTracksJob(
                     continue;
                 }
 
+                // Database operations
                 Artist artist;
                 if (artistName == null)
                 {
@@ -124,11 +131,13 @@ public class ImportTracksJob(
                     album = albumsInDb.FirstOrDefault()!;
                 }
 
+
                 var track = await _repository.CreateTrackAsync(new Track()
                 {
                     Name = title,
                     Number = number,
                     AlbumId = album.Id,
+                    FileObject = file + ".opus"
                 });
                 _logger.LogInformation($"Track {track.Name} added to the database");
             }

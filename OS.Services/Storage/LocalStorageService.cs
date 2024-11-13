@@ -120,4 +120,9 @@ public class LocalStorageService : IStorageService, ITempStorageService
 
         return extractedFiles.AsEnumerable();
     }
+
+    public string GetPath()
+    {
+        return _path;
+    }
 }

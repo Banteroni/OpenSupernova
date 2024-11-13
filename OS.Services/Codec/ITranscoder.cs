@@ -3,5 +3,5 @@
 public interface ITranscoder
 {
     public Task<bool> AreDependenciesInstalled();
-    public Task TranscodeAsync(string inputPath, string outputPath, string format, string codec, int bitrate, int sampleRate, string channels);
+    public Task TranscodeAsync(string inputObject, string outputObject);
 }
