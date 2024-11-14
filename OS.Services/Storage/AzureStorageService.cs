@@ -7,7 +7,7 @@ public class AzureStorageService : IStorageService
         throw new NotImplementedException();
     }
 
-    public Task<FileStream?> GetFileAsync(string objectName)
+    public Task<byte[]> GetFileAsync(string objectName)
     {
         throw new NotImplementedException();
     }

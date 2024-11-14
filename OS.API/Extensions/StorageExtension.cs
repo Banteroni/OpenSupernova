@@ -5,10 +5,11 @@ namespace OS.API;
 
 public static class StorageExtension
 {
-    public static IServiceCollection AddStorage(this IServiceCollection services, StorageSettings storageSettings)
+    public static IServiceCollection AddStorage(this IServiceCollection services, StorageSettings storageSettings, TemporaryStorageSettings temporaryStorageSettings)
     {
+        
         services.AddSingleton<ITempStorageService, LocalStorageService>(x =>
-            ActivatorUtilities.CreateInstance<LocalStorageService>(x, "temp"));
+            ActivatorUtilities.CreateInstance<LocalStorageService>(x, temporaryStorageSettings.Path ?? "temp"));
 
         var type = storageSettings.Type;
         switch (type)

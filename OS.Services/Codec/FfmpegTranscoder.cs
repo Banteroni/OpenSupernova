@@ -5,7 +5,11 @@ using OS.Services.Storage;
 
 namespace OS.Services.Codec;
 
-public class FfmpegTranscoder(ILogger<FfmpegTranscoder> logger, IStorageService storageService, ITempStorageService tempStorageService, TranscodeSettings transcodeSettings) : ITranscoder
+public class FfmpegTranscoder(
+    ILogger<FfmpegTranscoder> logger,
+    IStorageService storageService,
+    ITempStorageService tempStorageService,
+    TranscodeSettings transcodeSettings) : ITranscoder
 {
     private readonly ILogger<FfmpegTranscoder> _logger = logger;
     private readonly IStorageService _storageService = storageService;
@@ -40,37 +44,56 @@ public class FfmpegTranscoder(ILogger<FfmpegTranscoder> logger, IStorageService 
             _logger.LogError($"File {inputObject} does not exist");
             return;
         }
+
         var tempInputLocation = Path.Combine(_tempStorageService.GetPath(), inputObject);
         var tempOutputLocation = Path.Combine(_tempStorageService.GetPath(), outputObject);
+        // check if file can be read and wrote
         var process = new Process();
         process.StartInfo.FileName = "ffmpeg";
         process.StartInfo.Arguments =
             $"-y -i {tempInputLocation} -f {_transcodeSettings.Format} -c:a {_transcodeSettings.Codec} -b:a {_transcodeSettings.BitrateKbps}k -ar {_transcodeSettings.SampleRate} -ac {_transcodeSettings.Channels} {tempOutputLocation}";
+        process.StartInfo.CreateNoWindow = true;
+        process.StartInfo.UseShellExecute = false;
         process.StartInfo.RedirectStandardOutput = true;
         process.StartInfo.RedirectStandardError = true;
-        process.StartInfo.UseShellExecute = false;
         try
         {
-            process.Start();
-            var response = await process.StandardOutput.ReadToEndAsync();
-            await process.WaitForExitAsync();
-            if (!await _tempStorageService.FileExistsAsync(tempOutputLocation))
-                throw new FileNotFoundException(
-                    $"Transcoding was completed, however the file {tempOutputLocation} was not found");
+            process.OutputDataReceived += (sender, args) =>
+            {
+                if (args.Data != null)
+                {
+                    _logger.LogInformation(args.Data); // Log output if necessary
+                }
+            };
 
+            process.ErrorDataReceived += (sender, args) =>
+            {
+                if (args.Data != null)
+                {
+                    _logger.LogError(args.Data); // Log errors
+                }
+            };
+
+            process.Start();
+
+            // Start reading from the output and error streams asynchronously
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+
+            await process.WaitForExitAsync();
             if (process.ExitCode != 0)
             {
                 await _tempStorageService.DeleteFileAsync(tempOutputLocation);
                 throw new Exception($"Transcoding failed, exit code: {process.ExitCode}");
             }
-            
+
             // get byte array from file
             var bytes = await File.ReadAllBytesAsync(tempOutputLocation);
 
             var isFileStored = await _storageService.SaveFileAsync(bytes, outputObject);
             if (!isFileStored)
                 throw new Exception($"Failed to store file {outputObject}");
-            
+
             await _tempStorageService.DeleteFileAsync(tempOutputLocation);
             await _tempStorageService.DeleteFileAsync(inputObject);
             _logger.LogInformation($"Transcoding complete");

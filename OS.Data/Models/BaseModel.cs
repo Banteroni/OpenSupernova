@@ -2,7 +2,7 @@
 
 public class BaseModel
 {
-    public Guid Id { get; set; }
+    public Guid Id { get; init; }
     public DateTime CreatedAt;
     public DateTime UpdatedAt;
 }

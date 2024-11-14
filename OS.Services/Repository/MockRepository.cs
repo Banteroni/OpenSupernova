@@ -4,7 +4,7 @@ namespace OS.Services.Repository;
 
 public class MockRepository : IRepository
 {
-    private List<Artist> _artists =
+    private static List<Artist> _artists =
     [
         new Artist()
         {
@@ -29,7 +29,7 @@ public class MockRepository : IRepository
         },
     ];
 
-    private List<Album> _albums =
+    private static List<Album> _albums =
     [
         new Album()
         {
@@ -37,7 +37,7 @@ public class MockRepository : IRepository
             Name = "Be Here Now",
             Genre = "Rock",
             Year = 1997,
-            ArtistId = Guid.Parse("58a37044-9560-4c7e-8d7f-a904a635b83f"),
+            Artist = _artists[0],
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         },
@@ -47,7 +47,7 @@ public class MockRepository : IRepository
             Name = "Definitely Maybe",
             Genre = "Indie Rock",
             Year = 1994,
-            ArtistId = Guid.Parse("58a37044-9560-4c7e-8d7f-a904a635b83f"),
+            Artist = _artists[0],
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         },
@@ -57,7 +57,7 @@ public class MockRepository : IRepository
             Name = "The Great Escape",
             Genre = "Britpop",
             Year = 1995,
-            ArtistId = Guid.Parse("78084a3e-ab23-464d-9cb4-72080f57a22d"),
+            Artist = _artists[1],
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         }
@@ -72,7 +72,7 @@ public class MockRepository : IRepository
             // in seconds
             Duration = 442,
             Number = 1,
-            AlbumId = Guid.Parse("d0b03b74-319a-4b59-9d78-01518e5d0219"),
+            Album = _albums[0],
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         },
@@ -82,7 +82,7 @@ public class MockRepository : IRepository
             Name = "Roll With It",
             Duration = 235,
             Number = 2,
-            AlbumId = Guid.Parse("d0b03b74-319a-4b59-9d78-01518e5d0219"),
+            Album = _albums[1],
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         },
@@ -92,13 +92,13 @@ public class MockRepository : IRepository
             Name = "Country House",
             Duration = 257,
             Number = 1,
-            AlbumId = Guid.Parse("1375e64e-f0f5-45ff-923f-fc5515107a73"),
+            Album = _albums[2],
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         },
         new Track()
         {
-            AlbumId = Guid.Parse("53b89903-15c7-4c74-a33e-e1383caa1ac1"),
+            Album = _albums[1],
             CreatedAt = DateTime.Now,
             Duration = 287,
             Id = Guid.Parse("1375e64e-f0f5-45ff-923f-fc5515107a73"),
@@ -121,14 +121,14 @@ public class MockRepository : IRepository
                 (title == null || a.Name == title) &&
                 (year == null || a.Year == year) &&
                 (artist == null || a.Artist.Name == artist)).ToList();
-        
+
         for (var i = 0; i < queriedAlbums.Count; i++)
         {
             var album = queriedAlbums[i];
-            album.Artist = _artists.First(a => a.Id == album.ArtistId);
-            album.Tracks = _tracks.Where(t => t.AlbumId == album.Id).ToList();
+            album.Artist = _artists.First(a => a.Id == album.Artist?.Id);
+            album.Tracks = _tracks.Where(t => t.Album?.Id == album.Id).ToList();
         }
-        
+
         return Task.FromResult(queriedAlbums.AsEnumerable());
     }
 
@@ -165,7 +165,6 @@ public class MockRepository : IRepository
             Name = album.Name,
             Genre = album.Genre,
             Year = album.Year,
-            ArtistId = album.ArtistId,
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         };
@@ -196,7 +195,6 @@ public class MockRepository : IRepository
             Name = track.Name,
             Duration = track.Duration,
             Number = track.Number,
-            AlbumId = track.AlbumId,
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         };
@@ -204,9 +202,9 @@ public class MockRepository : IRepository
         return Task.FromResult(newTrack);
     }
 
-    public Task<Album> UpdateAlbumAsync(Album album)
+    public Task<Album> UpdateAlbumAsync(Album album, Guid id)
     {
-        var existingAlbum = _albums.FirstOrDefault(a => a.Id == album.Id);
+        var existingAlbum = _albums.FirstOrDefault(a => a.Id == id);
         if (existingAlbum == null)
         {
             throw new Exception("Album not found");
@@ -215,15 +213,24 @@ public class MockRepository : IRepository
         existingAlbum.Name = album.Name;
         existingAlbum.Genre = album.Genre;
         existingAlbum.Year = album.Year;
-        existingAlbum.ArtistId = album.ArtistId;
+        existingAlbum.CoverPath = album.CoverPath;
+        if (album.NavigationArtistId != null && album.Artist == null)
+        {
+            existingAlbum.Artist = _artists.FirstOrDefault(a => a.Id == album.NavigationArtistId);
+        }
+        else
+        {
+            existingAlbum.Artist = album.Artist;
+        }
+
         existingAlbum.UpdatedAt = DateTime.Now;
 
         return Task.FromResult(existingAlbum);
     }
 
-    public Task<Artist?> UpdateArtistAsync(Artist artist)
+    public Task<Artist?> UpdateArtistAsync(Artist artist, Guid id)
     {
-        var existingArtist = _artists.FirstOrDefault(a => a.Id == artist.Id);
+        var existingArtist = _artists.FirstOrDefault(a => a.Id == id);
         if (existingArtist == null)
         {
             return null;
@@ -237,9 +244,9 @@ public class MockRepository : IRepository
         return Task.FromResult(existingArtist);
     }
 
-    public Task<Track?> UpdateTrackAsync(Track track)
+    public Task<Track?> UpdateTrackAsync(Track track, Guid id)
     {
-        var existingTrack = _tracks.FirstOrDefault(t => t.Id == track.Id);
+        var existingTrack = _tracks.FirstOrDefault(t => t.Id == id);
         if (existingTrack == null)
         {
             return null;
@@ -248,7 +255,6 @@ public class MockRepository : IRepository
         existingTrack.Name = track.Name;
         existingTrack.Duration = track.Duration;
         existingTrack.Number = track.Number;
-        existingTrack.AlbumId = track.AlbumId;
         existingTrack.UpdatedAt = DateTime.Now;
 
         return Task.FromResult(existingTrack);

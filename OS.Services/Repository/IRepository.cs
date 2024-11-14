@@ -24,11 +24,11 @@ public interface IRepository
 
     public Task<Track> CreateTrackAsync(Track track);
 
-    public Task<Album?> UpdateAlbumAsync(Album album);
+    public Task<Album?> UpdateAlbumAsync(Album album, Guid id);
 
-    public Task<Artist?> UpdateArtistAsync(Artist artist);
+    public Task<Artist?> UpdateArtistAsync(Artist artist, Guid id);
 
-    public Task<Track?> UpdateTrackAsync(Track track);
+    public Task<Track?> UpdateTrackAsync(Track track, Guid id);
 
     public Task<Album?> DeleteAlbumAsync(Guid id);
 

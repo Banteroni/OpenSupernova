@@ -27,7 +27,7 @@ public class TrackController(
         var tracks = await _repository.GetTracksAsync();
         if (albumId != Guid.Empty)
         {
-            tracks = tracks.Where(t => t.AlbumId == albumId);
+            tracks = tracks.Where(t => t.NavigationAlbumId == albumId);
         }
 
         if (title != null)
@@ -75,7 +75,7 @@ public class TrackController(
     }
 
     [HttpPost]
-    public async Task<IActionResult> Upload([FromForm]string description, [FromForm]DateTime clientDate, IFormFile file)
+    public async Task<IActionResult> Upload([FromForm]string description, [FromForm]DateTime clientDate, IFormFile? file)
     {
         if (file == null)
         {
@@ -86,10 +86,10 @@ public class TrackController(
         {
             return BadRequest("Invalid content type");
         }
-
-        await using var stream = file.OpenReadStream();
-        var buffer = new byte[stream.Length];
-        await stream.ReadAsync(buffer.AsMemory(0, buffer.Length));
+        
+        await using var memoryStream = new MemoryStream();
+        await file.CopyToAsync(memoryStream);
+        var buffer = memoryStream.ToArray();
         var tempObject = Guid.NewGuid().ToString();
         try
         {
@@ -99,11 +99,10 @@ public class TrackController(
                 return BadRequest("Failed to save file, view logs for more information");
             }
 
-            var jobData = new JobDataMap();
-            jobData.Add("fileName", tempObject);
+            var jobData = new JobDataMap { { "fileName", tempObject } };
 
             var job = JobBuilder.Create<ImportTracksJob>()
-                .WithIdentity("ImportTracks", "ImportGroup")
+                .WithIdentity(Guid.NewGuid().ToString(), "ImportGroup")
                 .UsingJobData(jobData)
                 .Build();
 

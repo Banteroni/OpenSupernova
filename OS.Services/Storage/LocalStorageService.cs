@@ -46,19 +46,21 @@ public class LocalStorageService : IStorageService, ITempStorageService
         }
     }
 
-    public Task<FileStream?> GetFileAsync(string objectName)
+    public Task<byte[]> GetFileAsync(string objectName)
     {
         var fullPath = Path.Combine(_path, objectName);
 
         try
         {
-            var fileStream = File.OpenRead(fullPath);
-            return Task.FromResult<FileStream?>(fileStream);
+            var bytes = File.ReadAllBytes(fullPath);
+            return Task.FromResult(bytes);
+            
+            
         }
         catch (Exception ex)
         {
             _logger.LogError($"Failed to get file from {fullPath}, {ex}");
-            return Task.FromResult<FileStream?>(null);
+            return Task.FromResult<byte[]>([]);
         }
     }
 

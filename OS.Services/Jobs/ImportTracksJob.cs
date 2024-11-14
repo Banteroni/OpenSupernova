@@ -38,8 +38,8 @@ public class ImportTracksJob(
             return;
         }
 
-        var fileStream = await _tempStorageService.GetFileAsync(fileName);
-        if (fileStream == null)
+        var temporaryFileBytes = await _tempStorageService.GetFileAsync(fileName);
+        if (temporaryFileBytes.Length == 0)
         {
             _logger.LogError($"Failed to get file {fileName}");
             return;
@@ -61,8 +61,8 @@ public class ImportTracksJob(
         {
             try
             {
-                await using var fileReader = await _tempStorageService.GetFileAsync(file);
-                if (fileReader == null)
+                var fileBytes = await _tempStorageService.GetFileAsync(file);
+                if (fileBytes.Length == 0)
                 {
                     _logger.LogError($"Failed to get file {file}, skipping");
                     continue;
@@ -72,8 +72,7 @@ public class ImportTracksJob(
                 await _transcoder.TranscodeAsync(file, file + ".opus");
 
                 // Metadata
-                var trackBytes = await File.ReadAllBytesAsync(file);
-                var trackFile = new FlacFile(trackBytes);
+                var trackFile = new FlacFile(fileBytes);
                 var title = trackFile.GetTrackTitle();
                 var number = trackFile.GetTrackNumber();
                 var artistName = trackFile.GetTrackArtist();
@@ -119,9 +118,10 @@ public class ImportTracksJob(
 
                     album = await _repository.CreateAlbumAsync(new Album()
                     {
+                        Id = albumId,
                         Name = albumName,
                         Year = albumYear,
-                        ArtistId = artist.Id,
+                        Artist = artist,
                         Genre = albumGenre,
                         CoverPath = cover != null ? $"{albumId}_cover" : null
                     });
@@ -136,7 +136,7 @@ public class ImportTracksJob(
                 {
                     Name = title,
                     Number = number,
-                    AlbumId = album.Id,
+                    Album = album,
                     FileObject = file + ".opus"
                 });
                 _logger.LogInformation($"Track {track.Name} added to the database");

@@ -1,12 +1,14 @@
-﻿namespace OS.Data.Models;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace OS.Data.Models;
 
 public class Artist : BaseModel
 {
-    public required string Name { get; set; }
-    public string? Bio { get; set; }
-    public string? ImagePath { get; set; }
-    
+    [MaxLength(255)] public required string Name { get; set; }
+    [MaxLength(3096)] public string? Bio { get; set; }
+    [MaxLength(255)] public string? ImagePath { get; set; }
+
     // Navigation properties
-    public List<Album> Albums { get; }
-    public List<Track> Tracks { get; }
+    public ICollection<Album> Albums { get; } = new List<Album>();
+    public ICollection<Track> Tracks { get; } = new List<Track>();
 }

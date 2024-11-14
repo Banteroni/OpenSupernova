@@ -1,14 +1,18 @@
-﻿namespace OS.Data.Models;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace OS.Data.Models;
 
 public class Album : BaseModel
 {
-    public required string Name { get; set; }
-    public string? Genre { get; set; }
+    [MaxLength(255)] public required string Name { get; set; }
+    [MaxLength(255)] public string? Genre { get; set; }
     public int? Year { get; set; }
-    public string? CoverPath { get; set; }
-    public Guid ArtistId;
+    [MaxLength(255)] public string? CoverPath { get; set; }
+
+    [NotMapped] public Guid? NavigationArtistId { get; set; }
 
     // Navigation properties
-    public Artist Artist { get; set; }
-    public List<Track> Tracks { get; set; }
+    public Artist? Artist { get; set; }
+    public ICollection<Track> Tracks { get; set; } = [];
 }
