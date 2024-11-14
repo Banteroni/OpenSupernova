@@ -1,16 +1,13 @@
 using Microsoft.EntityFrameworkCore;
-using OS.API;
 using OS.Data.Context;
 using OS.Data.Options;
 using OS.Services.Codec;
 using OS.Services.Repository;
 using Quartz;
-using Microsoft.EntityFrameworkCore.Migrations;
+using OS.API.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -19,18 +16,14 @@ builder.Services.AddLogging(x =>
     x.ClearProviders();
     x.AddConsole();
 });
+builder.Services.AddStorage();
+builder.Services.AddQuartz();
 
-StorageSettings storageSettings = new();
 TranscodeSettings transcodeSettings = new();
-TemporaryStorageSettings temporaryStorageSettings = new();
 builder.Configuration.GetSection("TranscodeSettings").Bind(transcodeSettings);
-builder.Configuration.GetSection("StorageSettings").Bind(storageSettings);
-builder.Configuration.GetSection("TemporaryStorageSettings").Bind(temporaryStorageSettings);
-builder.Services.AddStorage(storageSettings, temporaryStorageSettings);
 builder.Services.AddSingleton<ITranscoder, FfmpegTranscoder>(x =>
     ActivatorUtilities.CreateInstance<FfmpegTranscoder>(x, transcodeSettings));
 
-builder.Services.AddQuartz();
 if (builder.Environment.IsDevelopment())
 {
     var connectionString = builder.Configuration.GetConnectionString("OsDbContext");

@@ -14,5 +14,5 @@ public class Album : BaseModel
 
     // Navigation properties
     public Artist? Artist { get; set; }
-    public ICollection<Track> Tracks { get; set; } = [];
+    public ICollection<Track> Tracks { get; set; } = new List<Track>();
 }

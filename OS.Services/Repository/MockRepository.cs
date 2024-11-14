@@ -152,7 +152,7 @@ public class MockRepository : IRepository
         return Task.FromResult(_tracks.FirstOrDefault(t => t.Id == id));
     }
 
-    public Task<IEnumerable<Track>> GetTracksAsync()
+    public Task<IEnumerable<Track>> GetTracksAsync(string? title = null, int? number = null, Guid? albumId = null)
     {
         return Task.FromResult(_tracks.AsEnumerable());
     }

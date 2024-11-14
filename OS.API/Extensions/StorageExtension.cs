@@ -1,46 +1,109 @@
 ﻿using OS.Data.Options;
 using OS.Services.Storage;
 
-namespace OS.API;
+namespace OS.API.Extensions;
 
 public static class StorageExtension
 {
-    public static IServiceCollection AddStorage(this IServiceCollection services, StorageSettings storageSettings, TemporaryStorageSettings temporaryStorageSettings)
+    public static class StoragePurpose
     {
-        
-        services.AddSingleton<ITempStorageService, LocalStorageService>(x =>
-            ActivatorUtilities.CreateInstance<LocalStorageService>(x, temporaryStorageSettings.Path ?? "temp"));
+        public const string StorageSettings = "StorageSettings";
+        public const string TemporaryStorageSettings = "TemporaryStorageSettings";
+    }
 
-        var type = storageSettings.Type;
-        switch (type)
+    private static void LoadStorageServiceFromGivenSetting(IServiceCollection services, BaseStorageSettings settings,
+        string storagePurpose)
+    {
+        if (settings == null)
+        {
+            throw new Exception("Settings is required");
+        }
+
+        var storageType = settings.Type;
+        switch (storageType)
         {
             case "local":
-            {
-                var path = storageSettings.Path;
-                if (string.IsNullOrEmpty(path))
+                if (settings is not LocalStorageSettings localSettings)
                 {
-                    throw new Exception("Path is required for local storage");
+                    throw new Exception("Settings does not match the expected type");
+                }
+                if (storagePurpose == StoragePurpose.TemporaryStorageSettings)
+                {
+                    services.AddSingleton<ITempStorageService, LocalStorageService>(x =>
+                        ActivatorUtilities.CreateInstance<LocalStorageService>(x, localSettings.Path));
+                }
+                else
+                {
+                    services.AddSingleton<IStorageService, LocalStorageService>(x =>
+                        ActivatorUtilities.CreateInstance<LocalStorageService>(x, localSettings.Path));
                 }
 
-                services.AddSingleton<IStorageService, LocalStorageService>(x =>
-                    ActivatorUtilities.CreateInstance<LocalStorageService>(x, path));
                 break;
-            }
             case "azure":
-            {
-                var connectionString = storageSettings.ConnectionString;
-                if (string.IsNullOrEmpty(connectionString))
-                {
-                    throw new Exception("ConnectionString is required for azure storage");
-                }
-
+                var azureSettings = settings as AzureStorageSettings;
                 services.AddSingleton<IStorageService, AzureStorageService>(x =>
-                    ActivatorUtilities.CreateInstance<AzureStorageService>(x, connectionString));
+                {
+                    if (azureSettings is { ConnectionString: not null, ContainerName: not null })
+                        return ActivatorUtilities.CreateInstance<AzureStorageService>(x,
+                            azureSettings.ConnectionString,
+                            azureSettings.ContainerName);
+                    throw new Exception("ConnectionString and ContainerName are required");
+                });
                 break;
-            }
             default:
                 throw new NotSupportedException("Storage type not supported");
         }
+    }
+
+    private static BaseStorageSettings GetStorageFromKey(IConfiguration configuration, string key)
+    {
+        if (configuration == null)
+        {
+            throw new Exception("Configuration is required");
+        }
+
+        var storageSettings = configuration.GetSection(key).Get<BaseStorageSettings>();
+        if (storageSettings == null)
+        {
+            throw new Exception($"{key} not found in configuration");
+        }
+
+        switch (storageSettings.Type)
+        {
+            case "local":
+                var localSettings = configuration.GetSection(key).Get<LocalStorageSettings>();
+                if (localSettings == null)
+                {
+                    throw new Exception($"{key} was found, but the object does not match the expected type");
+                }
+
+                return localSettings;
+            case "azure":
+                var azureSettings = configuration.GetSection(key).Get<AzureStorageSettings>();
+                if (azureSettings == null)
+                {
+                    throw new Exception($"{key} was found, but the object does not match the expected type");
+                }
+
+                return azureSettings;
+            default:
+                throw new NotSupportedException("Storage type not supported");
+        }
+    }
+
+    public static IServiceCollection AddStorage(this IServiceCollection services)
+    {
+        var configuration = services.BuildServiceProvider().GetService<IConfiguration>();
+        if (configuration == null)
+        {
+            throw new Exception("Configuration is required");
+        }
+
+        var storageSettings = GetStorageFromKey(configuration, StoragePurpose.StorageSettings);
+        LoadStorageServiceFromGivenSetting(services, storageSettings, StoragePurpose.StorageSettings);
+
+        var tempStorageSettings = GetStorageFromKey(configuration, StoragePurpose.TemporaryStorageSettings);
+        LoadStorageServiceFromGivenSetting(services, tempStorageSettings, StoragePurpose.TemporaryStorageSettings);
 
         return services;
     }

@@ -1,24 +1,77 @@
-﻿namespace OS.Services.Storage;
+﻿using Azure.Storage.Blobs;
+using Microsoft.Extensions.Logging;
+
+namespace OS.Services.Storage;
 
 public class AzureStorageService : IStorageService
 {
-    public Task<bool> SaveFileAsync(byte[] stream, string objectName)
+    private readonly BlobContainerClient _blobContainerClient;
+    private readonly ILogger<AzureStorageService> _logger;
+
+    public AzureStorageService(string connectionString, string container, ILogger<AzureStorageService> logger)
     {
-        throw new NotImplementedException();
+        _logger = logger;
+        var blobServiceClient = new BlobServiceClient(connectionString);
+        _blobContainerClient = blobServiceClient.GetBlobContainerClient(container);
     }
 
-    public Task<byte[]> GetFileAsync(string objectName)
+
+    public async Task<bool> SaveFileAsync(byte[] fileBytes, string objectName)
     {
-        throw new NotImplementedException();
+        await using var stream = new MemoryStream(fileBytes);
+        try
+        {
+            await _blobContainerClient.UploadBlobAsync(objectName, stream);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Failed to save file to Azure Blob Storage, {ex}");
+            return false;
+        }
     }
 
-    public Task<bool> DeleteFileAsync(string objectName)
+    public async Task<byte[]> GetFileAsync(string objectName)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var data = await _blobContainerClient.GetBlobClient(objectName).DownloadContentAsync();
+            await using var ms = data.Value.Content.ToStream();
+            var bytes = new byte[ms.Length];
+            var bytesRead = await ms.ReadAsync(bytes, 0, (int)ms.Length);
+            if (bytesRead != ms.Length)
+            {
+                _logger.LogError("Failed to read file from Azure Blob Storage");
+                return Array.Empty<byte>();
+            }
+
+            return bytes;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Failed to read file from Azure Blob Storage, {ex}");
+            return Array.Empty<byte>();
+        }
     }
 
-    public Task<bool> FileExistsAsync(string objectName)
+    public async Task<bool> DeleteFileAsync(string objectName)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var blobClient = _blobContainerClient.GetBlobClient(objectName);
+            await blobClient.DeleteAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Failed to delete file from Azure Blob Storage, {ex}");
+            return false;
+        }
+    }
+
+    public async Task<bool> FileExistsAsync(string objectName)
+    {
+        var blobClient = _blobContainerClient.GetBlobClient(objectName);
+        return await blobClient.ExistsAsync();
     }
 }

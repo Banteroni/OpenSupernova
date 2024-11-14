@@ -29,7 +29,7 @@ public class SqlRepository(OsDbContext dbContext) : IRepository
 
         if (artist != null)
         {
-            query = query.Where(a => a.Artist.Name.Contains(artist));
+            query = query.Where(a => a.Artist != null &&  a.Artist.Name.Contains(artist));
         }
 
         var albums = await query.ToListAsync();
@@ -71,27 +71,43 @@ public class SqlRepository(OsDbContext dbContext) : IRepository
         return track;
     }
 
-    public async Task<IEnumerable<Track>> GetTracksAsync()
+    public async Task<IEnumerable<Track>> GetTracksAsync(string? title = null, int? number = null, Guid? albumId = null)
     {
-        var tracks = await _dbContext.Tracks.ToListAsync();
+        var query = _dbContext.Tracks.AsQueryable();
+        if (title != null)
+        {
+            query = query.Where(t => t.Name.Contains(title));
+        }
+        if (number != null)
+        {
+            query = query.Where(t => t.Number == number);
+        }
+        if (albumId != null)
+        {
+            query = query.Where(t => t.Album != null && t.Album.Id == albumId);
+        }
+        var tracks = await query.ToListAsync();
         return tracks;
     }
 
     public async Task<Album> CreateAlbumAsync(Album album)
     {
         var entity = await _dbContext.Albums.AddAsync(album);
+        await _dbContext.SaveChangesAsync();
         return entity.Entity;
     }
 
     public async Task<Artist> CreateArtistAsync(Artist artist)
     {
         var entity = await _dbContext.Artists.AddAsync(artist);
+        await _dbContext.SaveChangesAsync();
         return entity.Entity;
     }
 
     public async Task<Track> CreateTrackAsync(Track track)
     {
         var entity = await _dbContext.Tracks.AddAsync(track);
+        await _dbContext.SaveChangesAsync();
         return entity.Entity;
     }
 

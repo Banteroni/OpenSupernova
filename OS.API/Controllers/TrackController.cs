@@ -66,7 +66,7 @@ public class TrackController(
 
         var stream = await _storageService.GetFileAsync(track.FileObject);
 
-        if (stream == null)
+        if (stream.Length == 0)
         {
             return NotFound("Transcoded file not found");
         }

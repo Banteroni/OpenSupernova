@@ -61,6 +61,12 @@ public class ImportTracksJob(
         {
             try
             {
+                var isFileGuid = Guid.TryParse(file, out var fileGuid);
+                if (!isFileGuid)
+                { 
+                    _logger.LogError("File name is not a valid GUID, this should not happen");
+                    continue;
+                }
                 var fileBytes = await _tempStorageService.GetFileAsync(file);
                 if (fileBytes.Length == 0)
                 {
@@ -95,10 +101,17 @@ public class ImportTracksJob(
                 else
                 {
                     var artistsInDb = (await _repository.GetArtistsAsync(artistName)).ToList();
-                    artist = artistsInDb.FirstOrDefault() ?? await _repository.CreateArtistAsync(new Artist()
+                    if (artistsInDb.Count == 0)
                     {
-                        Name = artistName
-                    });
+                        artist = await _repository.CreateArtistAsync(new Artist()
+                        {
+                            Name = artistName
+                        });
+                    }
+                    else
+                    {
+                        artist = artistsInDb.FirstOrDefault()!;
+                    }
                 }
 
                 Album album;
@@ -130,10 +143,17 @@ public class ImportTracksJob(
                 {
                     album = albumsInDb.FirstOrDefault()!;
                 }
-
-
+                // Check if track already exists
+                var tracksInDb = (await _repository.GetTracksAsync(title, number, album.Id)).ToList();
+                if (tracksInDb.Count > 0)
+                {
+                    _logger.LogWarning($"Track {title} already exists in the database, skipping");
+                    continue;
+                }
+                
                 var track = await _repository.CreateTrackAsync(new Track()
                 {
+                    Id = fileGuid,
                     Name = title,
                     Number = number,
                     Album = album,

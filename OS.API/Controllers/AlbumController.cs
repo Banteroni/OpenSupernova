@@ -26,4 +26,15 @@ public class AlbumController(IRepository repository) : Controller
         }
         return Ok(album);
     }
+    
+    [HttpGet("{id}/tracks")]
+    public async Task<IActionResult> GetAlbumTracks([FromRoute]Guid id)
+    {
+        var album = await _repository.GetAlbumAsync(id);
+        if (album == null)
+        {
+            return NotFound();
+        }
+        return Ok(album.Tracks);
+    }
 }

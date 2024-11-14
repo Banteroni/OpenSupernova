@@ -16,7 +16,7 @@ public interface IRepository
 
     public Task<Track?> GetTrackAsync(Guid id);
 
-    public Task<IEnumerable<Track>> GetTracksAsync();
+    public Task<IEnumerable<Track>> GetTracksAsync(string? title = null, int? number = null, Guid? albumId = null);
 
     public Task<Album> CreateAlbumAsync(Album album);
 

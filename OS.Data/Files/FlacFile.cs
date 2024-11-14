@@ -1,5 +1,5 @@
 ﻿using System.Text;
-using OS.Data.Models;
+// ReSharper disable UnusedMember.Local
 
 namespace OS.Data.Files;
 
@@ -105,8 +105,7 @@ public class FlacFile(byte[] data) : BaseFile(data)
         var description = Encoding.UTF8.GetString(pictureBinaryReader.ReadBytes(4));
         var width = ToBigEndian(pictureBinaryReader.ReadBytes(4));
         var height = ToBigEndian(pictureBinaryReader.ReadBytes(4));
-        var colorDepth = ToBigEndian(pictureBinaryReader.ReadBytes(4));
-        var colorCount = ToBigEndian(pictureBinaryReader.ReadBytes(4));
+        pictureBinaryReader.BaseStream.Seek(8, SeekOrigin.Current);
         var pictureLength = ToBigEndian(pictureBinaryReader.ReadBytes(4));
         using var data = new MemoryStream(pictureBinaryReader.ReadBytes(pictureLength));
         var dataBytes = data.ToArray();
