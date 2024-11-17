@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using OS.Data.Files;
 using OS.Data.Models;
+using OS.Data.Repository.Conditions;
+using OS.Data.Repository.SimpleConditions;
 using OS.Services.Codec;
 using OS.Services.Repository;
 using OS.Services.Storage;
@@ -63,10 +65,11 @@ public class ImportTracksJob(
             {
                 var isFileGuid = Guid.TryParse(file, out var fileGuid);
                 if (!isFileGuid)
-                { 
+                {
                     _logger.LogError("File name is not a valid GUID, this should not happen");
                     continue;
                 }
+
                 var fileBytes = await _tempStorageService.GetFileAsync(file);
                 if (fileBytes.Length == 0)
                 {
@@ -93,17 +96,30 @@ public class ImportTracksJob(
                 }
 
                 // Database operations
-                Artist artist;
+                Artist? artist;
                 if (artistName == null)
                 {
-                    artist = await _repository.GetUnknownArtistAsync();
+                    var unknownArtist = ArtistSimpleConditions.UnknownArtist();
+                    var unknownArtistId = (Guid)unknownArtist.Value;
+                    if (unknownArtistId == Guid.Empty)
+                    {
+                        throw new Exception("Expected ArtistSimpleConditions to return a valid GUID, instead got:" +
+                                            ArtistSimpleConditions.UnknownArtist());
+                    }
+
+                    artist = await _repository.GetAsync<Artist>(unknownArtistId);
+                    if (artist == null)
+                    {
+                        throw new Exception("Unknown artist not found in the database, this should not happen");
+                    }
                 }
                 else
                 {
-                    var artistsInDb = (await _repository.GetArtistsAsync(artistName)).ToList();
+                    var condition = ArtistSimpleConditions.ArtistNameSearch(artistName);
+                    var artistsInDb = (await _repository.GetListAsync<Artist>(condition)).ToList();
                     if (artistsInDb.Count == 0)
                     {
-                        artist = await _repository.CreateArtistAsync(new Artist()
+                        artist = await _repository.CreateAsync(new Artist()
                         {
                             Name = artistName
                         });
@@ -114,9 +130,21 @@ public class ImportTracksJob(
                     }
                 }
 
-                Album album;
+                Album? album;
                 if (albumName == null) continue;
-                var albumsInDb = (await _repository.GetAlbumsAsync(albumName, albumYear, albumArtist)).ToList();
+                var compositeCondition = new CompositeConditions(LogicalSwitch.And);
+                compositeCondition.AddCondition(new SimpleCondition("Name", Operator.Contains, albumName));
+                if (albumYear != null)
+                {
+                    compositeCondition.AddCondition(new SimpleCondition("Year", Operator.Equal, (int)albumYear));
+                }
+
+                if (albumArtist != null)
+                {
+                    compositeCondition.AddCondition(new SimpleCondition("Artist.Name", Operator.Contains, albumArtist));
+                }
+
+                var albumsInDb = (await _repository.GetListAsync<Album>(compositeCondition)).ToList();
                 if (albumsInDb.Count == 0)
                 {
                     Guid albumId = Guid.NewGuid();
@@ -129,11 +157,11 @@ public class ImportTracksJob(
                     }
 
 
-                    album = await _repository.CreateAlbumAsync(new Album()
+                    album = await _repository.CreateAsync(new Album()
                     {
                         Id = albumId,
                         Name = albumName,
-                        Year = albumYear,
+                        Year = albumYear ?? 0,
                         Artist = artist,
                         Genre = albumGenre,
                         CoverPath = cover != null ? $"{albumId}_cover" : null
@@ -143,15 +171,20 @@ public class ImportTracksJob(
                 {
                     album = albumsInDb.FirstOrDefault()!;
                 }
+
                 // Check if track already exists
-                var tracksInDb = (await _repository.GetTracksAsync(title, number, album.Id)).ToList();
+                var compositeTrackCondition = new CompositeConditions(LogicalSwitch.And);
+                compositeTrackCondition.AddCondition(new SimpleCondition("Name", Operator.Contains, title));
+                compositeTrackCondition.AddCondition(new SimpleCondition("Number", Operator.Equal, number.ToString()));
+                compositeTrackCondition.AddCondition(new SimpleCondition("Album.Id", Operator.Equal, album.Id.ToString()));
+                var tracksInDb = (await _repository.GetListAsync<Track>(compositeTrackCondition)).ToList();
                 if (tracksInDb.Count > 0)
                 {
                     _logger.LogWarning($"Track {title} already exists in the database, skipping");
                     continue;
                 }
-                
-                var track = await _repository.CreateTrackAsync(new Track()
+
+                var track = await _repository.CreateAsync(new Track()
                 {
                     Id = fileGuid,
                     Name = title,
@@ -159,7 +192,7 @@ public class ImportTracksJob(
                     Album = album,
                     FileObject = file + ".opus"
                 });
-                _logger.LogInformation($"Track {track.Name} added to the database");
+                _logger.LogInformation($"Track {track?.Name} added to the database");
             }
             catch (Exception e)
             {

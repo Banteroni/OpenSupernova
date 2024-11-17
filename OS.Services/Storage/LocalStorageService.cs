@@ -54,8 +54,6 @@ public class LocalStorageService : IStorageService, ITempStorageService
         {
             var bytes = File.ReadAllBytes(fullPath);
             return Task.FromResult(bytes);
-            
-            
         }
         catch (Exception ex)
         {
@@ -86,7 +84,7 @@ public class LocalStorageService : IStorageService, ITempStorageService
         return Task.FromResult(File.Exists(fullPath));
     }
 
-    public async Task<IEnumerable<string>> ExtractZipAsync(string objectName)
+    public Task<IEnumerable<string>> ExtractZipAsync(string objectName)
     {
         List<string> extractedFiles = [];
         var zipPath = Path.Combine(_path, objectName);
@@ -120,7 +118,7 @@ public class LocalStorageService : IStorageService, ITempStorageService
             File.Delete(zipPath);
         }
 
-        return extractedFiles.AsEnumerable();
+        return Task.FromResult(extractedFiles.AsEnumerable());
     }
 
     public string GetPath()

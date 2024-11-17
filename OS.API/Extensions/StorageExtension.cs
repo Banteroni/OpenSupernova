@@ -23,7 +23,7 @@ public static class StorageExtension
         switch (storageType)
         {
             case "local":
-                if (settings is not LocalStorageSettings localSettings)
+                if (settings is not LocalStorageSettings localSettings || localSettings.Path == null)
                 {
                     throw new Exception("Settings does not match the expected type");
                 }

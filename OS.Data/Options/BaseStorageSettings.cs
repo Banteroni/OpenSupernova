@@ -2,5 +2,5 @@
 
 public class BaseStorageSettings
 {
-    public string Type { get; set; }
+    public string? Type { get; set; }
 }

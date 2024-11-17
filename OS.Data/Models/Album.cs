@@ -7,7 +7,7 @@ public class Album : BaseModel
 {
     [MaxLength(255)] public required string Name { get; set; }
     [MaxLength(255)] public string? Genre { get; set; }
-    public int? Year { get; set; }
+    public int Year { get; set; }
     [MaxLength(255)] public string? CoverPath { get; set; }
 
     [NotMapped] public Guid? NavigationArtistId { get; set; }

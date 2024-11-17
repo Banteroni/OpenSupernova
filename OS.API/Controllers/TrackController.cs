@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using Microsoft.AspNetCore.Mvc;
+using OS.Data.Models;
 using OS.Services.Repository;
 using OS.Services.Jobs;
 using OS.Services.Storage;
@@ -24,7 +25,7 @@ public class TrackController(
     public async Task<IActionResult> GetTracks([FromQuery] [Optional] Guid albumId,
         [FromQuery] [Optional] string? title)
     {
-        var tracks = await _repository.GetTracksAsync();
+        var tracks = await _repository.GetListAsync<Track>();
         if (albumId != Guid.Empty)
         {
             tracks = tracks.Where(t => t.NavigationAlbumId == albumId);
@@ -41,7 +42,7 @@ public class TrackController(
     [HttpGet("{id}")]
     public async Task<IActionResult> GetTrack([FromRoute] Guid id)
     {
-        var track = await _repository.GetTrackAsync(id);
+        var track = await _repository.GetAsync<Track>(id);
         if (track == null)
         {
             return NotFound();
@@ -53,18 +54,13 @@ public class TrackController(
     [HttpGet("{id}/stream")]
     public async Task<IActionResult> GetTrackStream([FromRoute] Guid id)
     {
-        var track = await _repository.GetTrackAsync(id);
+        var track = await _repository.GetAsync<Track>(id);
         if (track == null)
         {
             return NotFound();
         }
 
-        if (track.FileObject == null)
-        {
-            return NotFound("Track has not been transcoded yet");
-        }
-
-        var stream = await _storageService.GetFileAsync(track.FileObject);
+        var stream = await _storageService.GetFileAsync(track.Id.ToString() + ".opus");
 
         if (stream.Length == 0)
         {

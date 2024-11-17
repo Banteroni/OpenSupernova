@@ -19,6 +19,17 @@ builder.Services.AddLogging(x =>
 builder.Services.AddStorage();
 builder.Services.AddQuartz();
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(
+        builderOpts =>
+        {
+            builderOpts.AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        });
+});
+
 TranscodeSettings transcodeSettings = new();
 builder.Configuration.GetSection("TranscodeSettings").Bind(transcodeSettings);
 builder.Services.AddSingleton<ITranscoder, FfmpegTranscoder>(x =>
