@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using OS.Data.Files;
 using OS.Data.Models;
+using OS.Data.Repository.ConditionPresets;
 using OS.Data.Repository.Conditions;
-using OS.Data.Repository.SimpleConditions;
 using OS.Services.Codec;
 using OS.Services.Repository;
 using OS.Services.Storage;
@@ -96,18 +96,18 @@ public class ImportTracksJob(
                 }
 
                 // Database operations
-                Artist? artist;
+                Artist artist;
                 if (artistName == null)
                 {
-                    var unknownArtist = ArtistSimpleConditions.UnknownArtist();
-                    var unknownArtistId = (Guid)unknownArtist.Value;
-                    if (unknownArtistId == Guid.Empty)
+                    var unknownArtist = ArtistConditionPresets.UnknownArtist();
+                    var isUnknownArtistParsed = Guid.TryParse(unknownArtist.Value.ToString(), out var unknownArtistId);
+                    if (!isUnknownArtistParsed)
                     {
-                        throw new Exception("Expected ArtistSimpleConditions to return a valid GUID, instead got:" +
-                                            ArtistSimpleConditions.UnknownArtist());
+                        _logger.LogError("Failed to parse unknown artist ID, this should not happen");
+                        continue;
                     }
 
-                    artist = await _repository.GetAsync<Artist>(unknownArtistId);
+                    artist = (await _repository.GetAsync<Artist>(unknownArtistId))!;
                     if (artist == null)
                     {
                         throw new Exception("Unknown artist not found in the database, this should not happen");
@@ -115,14 +115,15 @@ public class ImportTracksJob(
                 }
                 else
                 {
-                    var condition = ArtistSimpleConditions.ArtistNameSearch(artistName);
+                    var condition = ArtistConditionPresets.ArtistNameSearch(artistName);
                     var artistsInDb = (await _repository.GetListAsync<Artist>(condition)).ToList();
                     if (artistsInDb.Count == 0)
                     {
-                        artist = await _repository.CreateAsync(new Artist()
+                        var newArtistInDb = await _repository.CreateAsync(new Artist()
                         {
                             Name = artistName
                         });
+                        artist = newArtistInDb!;
                     }
                     else
                     {
@@ -132,22 +133,11 @@ public class ImportTracksJob(
 
                 Album? album;
                 if (albumName == null) continue;
-                var compositeCondition = new CompositeConditions(LogicalSwitch.And);
-                compositeCondition.AddCondition(new SimpleCondition("Name", Operator.Contains, albumName));
-                if (albumYear != null)
-                {
-                    compositeCondition.AddCondition(new SimpleCondition("Year", Operator.Equal, (int)albumYear));
-                }
-
-                if (albumArtist != null)
-                {
-                    compositeCondition.AddCondition(new SimpleCondition("Artist.Name", Operator.Contains, albumArtist));
-                }
-
-                var albumsInDb = (await _repository.GetListAsync<Album>(compositeCondition)).ToList();
+                var albumSearch = AlbumConditionPresets.AlbumSearch(albumName, albumArtist, albumYear);
+                var albumsInDb = (await _repository.GetListAsync<Album>(albumSearch)).ToList();
                 if (albumsInDb.Count == 0)
                 {
-                    Guid albumId = Guid.NewGuid();
+                    var albumId = Guid.NewGuid();
                     // Get picture from the file
                     var cover = trackFile.GetPicture(MediaType.CoverFront);
 
@@ -173,10 +163,11 @@ public class ImportTracksJob(
                 }
 
                 // Check if track already exists
-                var compositeTrackCondition = new CompositeConditions(LogicalSwitch.And);
+                var compositeTrackCondition = new CompositeCondition(LogicalSwitch.And);
                 compositeTrackCondition.AddCondition(new SimpleCondition("Name", Operator.Contains, title));
                 compositeTrackCondition.AddCondition(new SimpleCondition("Number", Operator.Equal, number.ToString()));
-                compositeTrackCondition.AddCondition(new SimpleCondition("Album.Id", Operator.Equal, album.Id.ToString()));
+                compositeTrackCondition.AddCondition(new SimpleCondition("Album.Id", Operator.Equal,
+                    album.Id.ToString()));
                 var tracksInDb = (await _repository.GetListAsync<Track>(compositeTrackCondition)).ToList();
                 if (tracksInDb.Count > 0)
                 {

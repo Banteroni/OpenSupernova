@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace OS.Data.Models;
 
@@ -13,6 +14,7 @@ public class Album : BaseModel
     [NotMapped] public Guid? NavigationArtistId { get; set; }
 
     // Navigation properties
-    public Artist? Artist { get; set; }
+    public Artist Artist { get; set; }
+    [JsonIgnore]
     public ICollection<Track> Tracks { get; set; } = new List<Track>();
 }

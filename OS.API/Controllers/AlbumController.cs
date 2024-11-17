@@ -12,9 +12,9 @@ public class AlbumController(IRepository repository) : Controller
 {
     private readonly IRepository _repository = repository;
     [HttpGet]
-    public async Task<IActionResult> GetAlbums([FromQuery][Optional] string? title, [FromQuery][Optional] int? year)
+    public async Task<IActionResult> GetAlbums([FromQuery][Optional] string? title, [FromQuery][Optional] int? year, [FromQuery][Optional] string? artist)
     {
-        var compositeCondition = new CompositeConditions(LogicalSwitch.Or);
+        var compositeCondition = new CompositeCondition(LogicalSwitch.Or);
         if (title != null)
         {
             compositeCondition.AddCondition(new SimpleCondition("Name", Operator.Contains, title));
@@ -23,6 +23,11 @@ public class AlbumController(IRepository repository) : Controller
         {
             compositeCondition.AddCondition(new SimpleCondition("Year", Operator.Equal, (int)year));
         }
+        if (artist != null)
+        {
+            compositeCondition.AddCondition(new SimpleCondition("Name", Operator.Contains, artist, nameof(Artist)));
+        }
+        
         var albums = await _repository.GetListAsync<Album>(compositeCondition);
         return Ok(albums);
     }
@@ -41,7 +46,7 @@ public class AlbumController(IRepository repository) : Controller
     [HttpGet("{id}/tracks")]
     public async Task<IActionResult> GetAlbumTracks([FromRoute]Guid id)
     {
-        var album = await _repository.GetAsync<Album>(id);
+        var album = await _repository.GetAsync<Album>(id, new []{nameof(Album.Tracks)});
         if (album == null)
         {
             return NotFound();

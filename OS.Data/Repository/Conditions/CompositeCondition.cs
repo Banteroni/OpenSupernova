@@ -8,22 +8,31 @@ public enum LogicalSwitch
     Or
 }
 
-public class CompositeConditions : BaseCondition
+public class CompositeCondition : BaseCondition
 {
     public List<SimpleCondition> Conditions { get; set; } = [];
 
     public LogicalSwitch Op { get; set; }
 
+    public int Skip { get; set; }
+    public int Take { get; set; }
 
-    public CompositeConditions(LogicalSwitch op, params SimpleCondition[] conditions)
+
+    public CompositeCondition(LogicalSwitch op, params SimpleCondition[] conditions)
     {
         Op = op;
         Conditions.AddRange(conditions);
     }
 
-    public CompositeConditions(LogicalSwitch op)
+    public CompositeCondition(LogicalSwitch op)
     {
         Op = op;
+    }
+
+    public CompositeCondition(int skip, int take)
+    {
+        Skip = skip;
+        Take = take;
     }
 
     public void AddCondition(SimpleCondition condition)
@@ -31,15 +40,42 @@ public class CompositeConditions : BaseCondition
         Conditions.Add(condition);
     }
 
+    public IEnumerable<string> GetModelsToInclude()
+    {
+        var models = Conditions.Select(c => c.Model).Distinct().ToList();
+        models.RemoveAll(m => m == null);
+        return models.AsEnumerable()!;
+    }
+
     public Expression<Func<T, bool>> ToLambda<T>()
     {
+        // if there are no conditions, return a lambda that always returns true
+        if (Conditions.Count == 0)
+        {
+            return e => true;
+        }
+
         var expressions = new List<Expression>();
         var parameter = Expression.Parameter(typeof(T), "e");
 
         foreach (var column in Conditions)
         {
-            var member = Expression.Property(parameter, column.Field);
+            // Check if ModelName is set and if so, use it to build the expression
+            Expression member = parameter;
+
+            if (column.Model != null)
+            {
+                member = Expression.Property(member, column.Model);
+                member = Expression.Property(member, column.Field);
+            }
+            else
+            {
+                member = Expression.Property(member, column.Field);
+            }
+
             var constant = Expression.Constant(column.Value);
+
+            // Build the expression based on the operator
             switch (column.Operator)
             {
                 case Operator.Equal:
@@ -69,7 +105,19 @@ public class CompositeConditions : BaseCondition
             }
         }
 
-        var resultExpression = expressions.Aggregate(Op == LogicalSwitch.And ? Expression.And : Expression.Or);
-        return (Expression<Func<T, bool>>)Expression.Lambda(resultExpression, parameter);
+        if (Skip > 0)
+        {
+            expressions.Add(Expression.Call(typeof(Queryable), "Skip", new[] { typeof(T) }, Expression.Constant(Skip)));
+        }
+
+        if (Take > 0)
+        {
+            expressions.Add(Expression.Call(typeof(Queryable), "Take", new[] { typeof(T) },
+                Expression.Constant(Take)));
+        }
+
+        // Combine the expressions using AND logic (this might need adjustments based on your requirements)
+        var body = expressions.Aggregate((accum, expr) => Expression.AndAlso(accum, expr));
+        return Expression.Lambda<Func<T, bool>>(body, parameter);
     }
 }

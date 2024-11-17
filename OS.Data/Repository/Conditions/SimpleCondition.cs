@@ -14,28 +14,32 @@ public enum Operator
 
 public class SimpleCondition : BaseCondition
 {
-    public SimpleCondition(string field, Operator op, string value)
+    public SimpleCondition(string field, Operator op, string value, string? model = null)
     {
         Field = field;
         Operator = op;
         Value = value;
+        Model = model;
     }
 
-    public SimpleCondition(string field, Operator op, int value)
+    public SimpleCondition(string field, Operator op, int value, string? model = null)
     {
         Field = field;
         Operator = op;
         Value = value;
+        Model = model;
     }
 
-    public SimpleCondition(string field, Operator op, Guid value)
+    public SimpleCondition(string field, Operator op, Guid value, string? model = null)
     {
         Field = field;
         Operator = op;
         Value = value;
+        Model = model;
     }
 
     public string Field;
+    public string? Model;
     public Operator Operator { get; set; }
     public object Value;
 }

@@ -5,12 +5,22 @@ namespace OS.Services.Repository;
 
 public class MockRepository : IRepository
 {
-    public Task<IEnumerable<T>> GetListAsync<T>(BaseCondition? condition = null) where T : BaseModel
+    public Task<IEnumerable<T>> GetListAsync<T>(CompositeCondition condition) where T : BaseModel
     {
         throw new NotImplementedException();
     }
 
-    public Task<T?> GetAsync<T>(Guid id) where T : BaseModel
+    public Task<IEnumerable<T>> GetListAsync<T>(SimpleCondition condition) where T : BaseModel
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<IEnumerable<T>> GetListAsync<T>() where T : BaseModel
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<T?> GetAsync<T>(Guid id, string[] entitiesToInclude) where T : BaseModel
     {
         throw new NotImplementedException();
     }
