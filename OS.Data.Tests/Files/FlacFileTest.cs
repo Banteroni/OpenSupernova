@@ -17,6 +17,26 @@ public class FlacFileTest : IDisposable
         _stream.Read(buffer, 0, (int)_stream.Length);
         _flacFile = new FlacFile(buffer);
     }
+    [Test]
+    public void CheckCorrectFormat()
+    {
+        var isCorrectFormat = _flacFile.IsCorrectFormat();
+        Assert.That(isCorrectFormat, Is.True);
+    }
+
+    [Test]
+    public void RetrieveAlbumGenre()
+    {
+        var genre = _flacFile.GetAlbumGenre();
+        Assert.That(genre, Is.Not.Null);
+    }
+
+    [Test]
+    public void RetrieveAlbumYear()
+    {
+        var year = _flacFile.GetAlbumYear();
+        Assert.That(year, Is.Not.Null);
+    }
 
     [Test]
     public void RetrieveTrackTitle()

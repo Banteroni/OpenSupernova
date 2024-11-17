@@ -27,7 +27,12 @@ public class ImportTracksJob(
     public async Task Execute(IJobExecutionContext context)
     {
         var jobData = context.JobDetail.JobDataMap;
-        var fileName = jobData.GetString("fileName");
+        var fileNameFound = jobData.TryGetString("fileName", out var fileName);
+        if (!fileNameFound)
+        {
+            _logger.LogError("File path not found in the job data");
+            return;
+        }
         if (string.IsNullOrEmpty(fileName))
         {
             _logger.LogError("File path is empty");

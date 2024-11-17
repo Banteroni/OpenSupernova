@@ -5,7 +5,7 @@ using OS.Data.Repository.Conditions;
 
 namespace OS.Services.Repository;
 
-public class SqlRepository(OsDbContext context) : IRepository
+public class SqlRepository(OsDbContext context) : BaseRepository, IRepository
 {
     private readonly OsDbContext _context = context;
 
@@ -13,8 +13,10 @@ public class SqlRepository(OsDbContext context) : IRepository
     {
         var query = _context.Set<T>().AsQueryable();
         var lambda = condition.ToLambda<T>();
-        var response = await query.Include(nameof(Artist)).Where(lambda).ToListAsync();
-        return response;
+        var populatedQuery = query.Where(lambda);
+        populatedQuery = ApplySkipAndTake(populatedQuery, condition);
+        var queryList = await populatedQuery.Include(nameof(Artist)).Where(lambda).ToListAsync();
+        return queryList;
     }
 
     public async Task<IEnumerable<T>> GetListAsync<T>(SimpleCondition condition) where T : BaseModel
@@ -42,14 +44,14 @@ public class SqlRepository(OsDbContext context) : IRepository
         return response;
     }
 
-    public async Task<T?> CreateAsync<T>(T entity) where T : BaseModel
+    public async Task<T> CreateAsync<T>(T entity) where T : BaseModel
     {
         var response = await _context.Set<T>().AddAsync(entity);
         await _context.SaveChangesAsync();
         return response.Entity;
     }
 
-    public async Task<T?> UpdateAsync<T>(T entity, Guid id) where T : BaseModel
+    public async Task<T> UpdateAsync<T>(T entity, Guid id) where T : BaseModel
     {
         var response = _context.Set<T>().Update(entity);
         await _context.SaveChangesAsync();

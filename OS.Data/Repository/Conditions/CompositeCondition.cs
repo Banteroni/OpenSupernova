@@ -49,75 +49,74 @@ public class CompositeCondition : BaseCondition
 
     public Expression<Func<T, bool>> ToLambda<T>()
     {
-        // if there are no conditions, return a lambda that always returns true
-        if (Conditions.Count == 0)
-        {
-            return e => true;
-        }
-
         var expressions = new List<Expression>();
         var parameter = Expression.Parameter(typeof(T), "e");
-
-        foreach (var column in Conditions)
+        // if there are no conditions, return a lambda that always returns true
+        if (Conditions.Count > 0)
         {
-            // Check if ModelName is set and if so, use it to build the expression
-            Expression member = parameter;
-
-            if (column.Model != null)
+            foreach (var column in Conditions)
             {
-                member = Expression.Property(member, column.Model);
-                member = Expression.Property(member, column.Field);
-            }
-            else
-            {
-                member = Expression.Property(member, column.Field);
-            }
+                // Check if ModelName is set and if so, use it to build the expression
+                Expression member = parameter;
 
-            var constant = Expression.Constant(column.Value);
+                if (column.Model != null)
+                {
+                    member = Expression.Property(member, column.Model);
+                    member = Expression.Property(member, column.Field);
+                }
+                else
+                {
+                    member = Expression.Property(member, column.Field);
+                }
 
-            // Build the expression based on the operator
-            switch (column.Operator)
-            {
-                case Operator.Equal:
-                    expressions.Add(Expression.Equal(member, constant));
-                    break;
-                case Operator.NotEqual:
-                    expressions.Add(Expression.NotEqual(member, constant));
-                    break;
-                case Operator.GreaterThan:
-                    expressions.Add(Expression.GreaterThan(member, constant));
-                    break;
-                case Operator.LessThan:
-                    expressions.Add(Expression.LessThan(member, constant));
-                    break;
-                case Operator.GreaterThanOrEqual:
-                    expressions.Add(Expression.GreaterThanOrEqual(member, constant));
-                    break;
-                case Operator.LessThanOrEqual:
-                    expressions.Add(Expression.LessThanOrEqual(member, constant));
-                    break;
-                case Operator.Contains:
-                    expressions.Add(Expression.Call(member, "Contains", null, constant));
-                    break;
-                case Operator.DoesNotContain:
-                    expressions.Add(Expression.Not(Expression.Call(member, "Contains", null, constant)));
-                    break;
+                var constant = Expression.Constant(column.Value);
+
+                // Build the expression based on the operator
+                switch (column.Operator)
+                {
+                    case Operator.Equal:
+                        expressions.Add(Expression.Equal(member, constant));
+                        break;
+                    case Operator.NotEqual:
+                        expressions.Add(Expression.NotEqual(member, constant));
+                        break;
+                    case Operator.GreaterThan:
+                        expressions.Add(Expression.GreaterThan(member, constant));
+                        break;
+                    case Operator.LessThan:
+                        expressions.Add(Expression.LessThan(member, constant));
+                        break;
+                    case Operator.GreaterThanOrEqual:
+                        expressions.Add(Expression.GreaterThanOrEqual(member, constant));
+                        break;
+                    case Operator.LessThanOrEqual:
+                        expressions.Add(Expression.LessThanOrEqual(member, constant));
+                        break;
+                    case Operator.Contains:
+                        expressions.Add(Expression.Call(member, "Contains", null, constant));
+                        break;
+                    case Operator.DoesNotContain:
+                        expressions.Add(Expression.Not(Expression.Call(member, "Contains", null, constant)));
+                        break;
+                }
             }
         }
-
-        if (Skip > 0)
+        else
         {
-            expressions.Add(Expression.Call(typeof(Queryable), "Skip", new[] { typeof(T) }, Expression.Constant(Skip)));
+            expressions.Add(Expression.Constant(true));
         }
 
-        if (Take > 0)
-        {
-            expressions.Add(Expression.Call(typeof(Queryable), "Take", new[] { typeof(T) },
-                Expression.Constant(Take)));
-        }
+        Expression body;
 
-        // Combine the expressions using AND logic (this might need adjustments based on your requirements)
-        var body = expressions.Aggregate((accum, expr) => Expression.AndAlso(accum, expr));
+        if (Op == LogicalSwitch.And)
+        {
+            body = expressions.Aggregate((accum, expr) => Expression.AndAlso(accum, expr));
+        }
+        else
+        {
+            body = expressions.Aggregate((accum, expr) => Expression.OrElse(accum, expr));
+        }
+         
         return Expression.Lambda<Func<T, bool>>(body, parameter);
     }
 }
