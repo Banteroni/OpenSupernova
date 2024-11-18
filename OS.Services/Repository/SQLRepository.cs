@@ -9,27 +9,34 @@ public class SqlRepository(OsDbContext context) : BaseRepository, IRepository
 {
     private readonly OsDbContext _context = context;
 
-    public async Task<IEnumerable<T>> GetListAsync<T>(CompositeCondition condition) where T : BaseModel
+    public async Task<IEnumerable<T>> GetListAsync<T>(CompositeCondition condition, string[]? modelsToInclude = null) where T : BaseModel
     {
         var query = _context.Set<T>().AsQueryable();
         var lambda = condition.ToLambda<T>();
         var populatedQuery = query.Where(lambda);
         populatedQuery = ApplySkipAndTake(populatedQuery, condition);
-        var queryList = await populatedQuery.Include(nameof(Artist)).Where(lambda).ToListAsync();
+        // include  mdodels
+        if (modelsToInclude != null)
+        {
+            foreach (var model in modelsToInclude)
+            {
+                populatedQuery = populatedQuery.Include(model);
+            }
+        }
+        var queryList = await populatedQuery.Where(lambda).ToListAsync();
         return queryList;
     }
 
-    public async Task<IEnumerable<T>> GetListAsync<T>(SimpleCondition condition) where T : BaseModel
+    public async Task<IEnumerable<T>> GetListAsync<T>(SimpleCondition condition, string[]? modelsToInclude = null) where T : BaseModel
     {
         var compositeCondition = new CompositeCondition(LogicalSwitch.And);
         compositeCondition.AddCondition(condition);
-
-        return await GetListAsync<T>(compositeCondition);
+        return await GetListAsync<T>(compositeCondition, modelsToInclude);
     }
 
-    public async Task<IEnumerable<T>> GetListAsync<T>() where T : BaseModel
+    public async Task<IEnumerable<T>> GetListAsync<T>(string[]? modelsToInclude = null) where T : BaseModel
     {
-        return await GetListAsync<T>(new CompositeCondition(LogicalSwitch.And));
+        return await GetListAsync<T>(new CompositeCondition(LogicalSwitch.And), modelsToInclude);
     }
 
     public async Task<T?> GetAsync<T>(Guid id, string[]? entitiesToInclude = null) where T : BaseModel

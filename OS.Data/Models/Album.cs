@@ -11,8 +11,6 @@ public class Album : BaseModel
     public int Year { get; set; }
     [MaxLength(255)] public string? CoverPath { get; set; }
 
-    [NotMapped] public Guid? NavigationArtistId { get; set; }
-
     // Navigation properties
     public Artist Artist { get; set; }
     [JsonIgnore]

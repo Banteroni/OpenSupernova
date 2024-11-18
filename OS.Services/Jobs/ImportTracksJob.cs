@@ -170,9 +170,12 @@ public class ImportTracksJob(
                 // Check if track already exists
                 var compositeTrackCondition = new CompositeCondition(LogicalSwitch.And);
                 compositeTrackCondition.AddCondition(new SimpleCondition("Name", Operator.Contains, title));
-                compositeTrackCondition.AddCondition(new SimpleCondition("Number", Operator.Equal, number.ToString()));
-                compositeTrackCondition.AddCondition(new SimpleCondition("Album.Id", Operator.Equal,
-                    album.Id.ToString()));
+                if (number != null)
+                {
+                    compositeTrackCondition.AddCondition(new SimpleCondition("Number", Operator.Equal, (int)number));
+                }
+                compositeTrackCondition.AddCondition(new SimpleCondition("Id", Operator.Equal,
+                    album.Id, nameof(Album)));
                 var tracksInDb = (await _repository.GetListAsync<Track>(compositeTrackCondition)).ToList();
                 if (tracksInDb.Count > 0)
                 {
@@ -184,7 +187,7 @@ public class ImportTracksJob(
                 {
                     Id = fileGuid,
                     Name = title,
-                    Number = number,
+                    Number = number ?? 0,
                     Album = album,
                     FileObject = file + ".opus"
                 });
@@ -193,7 +196,10 @@ public class ImportTracksJob(
             catch (Exception e)
             {
                 _logger.LogError(e, $"Failed to process file {file}, skipping");
+                await _tempStorageService.DeleteFileAsync(file);
             }
+
         }
+        await _tempStorageService.DeleteFileAsync(fileName);
     }
 }

@@ -5,11 +5,11 @@ namespace OS.Services.Repository;
 
 public interface IRepository
 {
-    public Task<IEnumerable<T>> GetListAsync<T>(CompositeCondition condition) where T : BaseModel;
+    public Task<IEnumerable<T>> GetListAsync<T>(CompositeCondition condition, string[]? modelsToInclude = null) where T : BaseModel;
 
-    public Task<IEnumerable<T>> GetListAsync<T>(SimpleCondition condition) where T : BaseModel;
+    public Task<IEnumerable<T>> GetListAsync<T>(SimpleCondition condition, string[]? modelsToInclude = null) where T : BaseModel;
 
-    public Task<IEnumerable<T>> GetListAsync<T>() where T : BaseModel;
+    public Task<IEnumerable<T>> GetListAsync<T>(string[]? modelsToInclude = null) where T : BaseModel;
 
     public Task<T?> GetAsync<T>(Guid id, string[]? entitiesToInclude = null) where T : BaseModel;
 

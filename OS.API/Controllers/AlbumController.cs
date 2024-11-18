@@ -28,14 +28,14 @@ public class AlbumController(IRepository repository) : Controller
             compositeCondition.AddCondition(new SimpleCondition("Name", Operator.Contains, artist, nameof(Artist)));
         }
         
-        var albums = await _repository.GetListAsync<Album>(compositeCondition);
+        var albums = await _repository.GetListAsync<Album>(compositeCondition, [nameof(Artist)]);
         return Ok(albums);
     }
     
     [HttpGet("{id}")]
     public async Task<IActionResult> GetAlbum([FromRoute]Guid id)
     {
-        var album = await _repository.GetAsync<Album>(id);
+        var album = await _repository.GetAsync<Album>(id, [nameof(Artist)]);
         if (album == null)
         {
             return NotFound();

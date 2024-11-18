@@ -71,6 +71,7 @@ public class TrackController(
     }
 
     [HttpPost]
+    [DisableRequestSizeLimit]
     public async Task<IActionResult> Upload([FromForm]string description, [FromForm]DateTime clientDate, IFormFile? file)
     {
         if (file == null)

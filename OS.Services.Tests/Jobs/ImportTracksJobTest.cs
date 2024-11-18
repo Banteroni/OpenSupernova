@@ -14,6 +14,7 @@ public class ImportTracksJobTest
     private ImportTracksJob _job;
     private Mock<ILogger<ImportTracksJob>> _jobLogger;
     private Mock<ILogger<LocalStorageService>> _storageLogger;
+    private Guid _trackGuid = Guid.NewGuid();
 
     [SetUp]
     public async Task Setup()
@@ -21,8 +22,8 @@ public class ImportTracksJobTest
         _jobLogger = new Mock<ILogger<ImportTracksJob>>();
         _storageLogger = new Mock<ILogger<LocalStorageService>>();
         var repository = new MockRepository();
-        var storageService = new LocalStorageService(_storageLogger.Object, "archive");
-        var tempStorageService = new LocalStorageService(_storageLogger.Object, "temp");
+        var storageService = new Mock<LocalStorageService>(_storageLogger.Object, "archive");
+        var tempStorageService = new Mock<LocalStorageService>(_storageLogger.Object, "temp");
         TranscodeSettings transcodeSettings = new TranscodeSettings()
         {
             BitrateKbps = 128,
@@ -32,13 +33,13 @@ public class ImportTracksJobTest
             Format = "opus"
         };
         var transcoderLogger = new Mock<ILogger<FfmpegTranscoder>>();
-        var transcoder = new FfmpegTranscoder(transcoderLogger.Object, storageService, tempStorageService,
+        var transcoder = new FfmpegTranscoder(transcoderLogger.Object, storageService.Object, tempStorageService.Object,
             transcodeSettings);
 
         var buffer = await File.ReadAllBytesAsync("dummy.flac");
-        await tempStorageService.SaveFileAsync(buffer, "dummy.flac");
+        await tempStorageService.Object.SaveFileAsync(buffer, _trackGuid.ToString());
 
-        _job = new ImportTracksJob(_jobLogger.Object, storageService, tempStorageService, transcoder, repository);
+        _job = new ImportTracksJob(_jobLogger.Object, storageService.Object, tempStorageService.Object, transcoder, repository);
     }
 
 
@@ -47,7 +48,7 @@ public class ImportTracksJobTest
     {
         // Arrange
         var jobData = new JobDataMap();
-        jobData.Add("fileName", "dummy.flac");
+        jobData.Add("fileName", _trackGuid.ToString());
         var context = new Mock<IJobExecutionContext>();
         context.Setup(x => x.JobDetail.JobDataMap).Returns(jobData);
 
@@ -122,6 +123,31 @@ public class ImportTracksJobTest
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("File path is empty")),
                 It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task ImportTracksWithZip()
+    {
+        // Arrange
+        var jobData = new JobDataMap();
+        jobData.Add("fileName", "dummy.zip");
+        var context = new Mock<IJobExecutionContext>();
+        context.Setup(x => x.JobDetail.JobDataMap).Returns(jobData);
+
+        var buffer = await File.ReadAllBytesAsync("dummy.zip");
+        var tempStorageService = new LocalStorageService(_storageLogger.Object, "temp");
+        await tempStorageService.SaveFileAsync(buffer, "dummy.zip");
+
+        //Act
+        await _job.Execute(context.Object);
+        _jobLogger.Verify(
+            m => m.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("added to the database")),
+                null,
                 (Func<It.IsAnyType, Exception, string>)It.IsAny<object>()),
             Times.Once);
     }

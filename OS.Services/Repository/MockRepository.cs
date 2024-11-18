@@ -9,7 +9,7 @@ public class MockRepository : BaseRepository, IRepository
     public List<Artist> Artists { get; set; } = [];
     public List<Track> Tracks { get; set; } = [];
 
-    public Task<IEnumerable<T>> GetListAsync<T>(CompositeCondition condition) where T : BaseModel
+    public Task<IEnumerable<T>> GetListAsync<T>(CompositeCondition condition, string[]? modelsToInclude = null) where T : BaseModel
     {
         var query = _extractCorrectQueryable<T>();
         var lambda = condition.ToLambda<T>();
@@ -19,7 +19,7 @@ public class MockRepository : BaseRepository, IRepository
         return Task.FromResult(response.AsEnumerable());
     }
 
-    public Task<IEnumerable<T>> GetListAsync<T>(SimpleCondition condition) where T : BaseModel
+    public Task<IEnumerable<T>> GetListAsync<T>(SimpleCondition condition, string[]? modelsToInclude = null) where T : BaseModel
     {
         var compositeCondition = new CompositeCondition(LogicalSwitch.And);
         compositeCondition.AddCondition(condition);
@@ -27,7 +27,7 @@ public class MockRepository : BaseRepository, IRepository
         return GetListAsync<T>(compositeCondition);
     }
 
-    public async Task<IEnumerable<T>> GetListAsync<T>() where T : BaseModel
+    public async Task<IEnumerable<T>> GetListAsync<T>(string[]? modelsToInclude = null) where T : BaseModel
     {
         return await GetListAsync<T>(new CompositeCondition(LogicalSwitch.And));
     }

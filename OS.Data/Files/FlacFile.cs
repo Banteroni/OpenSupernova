@@ -20,7 +20,7 @@ public class FlacFile(byte[] data) : BaseFile(data)
     {
 
         // Check if first 4 bytes equals "fLaC"
-        var flacHeader =  Data.Take(4).ToArray();
+        var flacHeader = Data.Take(4).ToArray();
         return Encoding.UTF8.GetString(flacHeader) == "fLaC";
     }
 
@@ -40,6 +40,10 @@ public class FlacFile(byte[] data) : BaseFile(data)
         if (year == null)
         {
             return null;
+        }
+        if (year.Length > 4)
+        {
+            year = year.Substring(0, 4);
         }
 
         int.TryParse(year, out var yearInt);
@@ -69,6 +73,11 @@ public class FlacFile(byte[] data) : BaseFile(data)
             return null;
         }
 
+        if (trackNumber.Contains('/'))
+        {
+            var trackNumberSplit = trackNumber.Split('/');
+            trackNumber = trackNumberSplit[0];
+        }
         int.TryParse(trackNumber, out var trackNumberInt);
         return trackNumberInt;
     }

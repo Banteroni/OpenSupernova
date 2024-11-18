@@ -5,6 +5,7 @@ using OS.Services.Codec;
 using OS.Services.Repository;
 using Quartz;
 using OS.API.Extensions;
+using OS.Services.Jobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,9 +17,30 @@ builder.Services.AddLogging(x =>
     x.ClearProviders();
     x.AddConsole();
 });
-builder.Services.AddStorage();
-builder.Services.AddQuartz();
 
+// Storage
+builder.Services.AddStorage();
+
+// Quartz
+builder.Services.AddQuartz(x =>
+{
+    x.UsePersistentStore(store =>
+    {
+        store.UseProperties = true;
+        var quartzConnectionString = builder.Configuration.GetConnectionString("QuartzDbContext");
+        if (quartzConnectionString != null)
+        {
+            store.UseSqlServer(quartzConnectionString);
+        }
+    });
+});
+
+builder.Services.AddQuartzHostedService(options =>
+{
+    options.WaitForJobsToComplete = true;
+});
+
+// Cors
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(
@@ -30,10 +52,8 @@ builder.Services.AddCors(options =>
         });
 });
 
-TranscodeSettings transcodeSettings = new();
-builder.Configuration.GetSection("TranscodeSettings").Bind(transcodeSettings);
-builder.Services.AddSingleton<ITranscoder, FfmpegTranscoder>(x =>
-    ActivatorUtilities.CreateInstance<FfmpegTranscoder>(x, transcodeSettings));
+// Transcoder
+builder.Services.AddTranscoder();
 
 if (builder.Environment.IsDevelopment())
 {
@@ -51,6 +71,12 @@ if (builder.Environment.IsDevelopment())
         builder.Services.AddScoped<IRepository, SqlRepository>();
     }
 }
+
+// Get all the BaseJob implementations
+var baseJobTypes = AppDomain.CurrentDomain.GetAssemblies()
+    .SelectMany(s => s.GetTypes())
+    .Where(p => typeof(BaseJob).IsAssignableFrom(p) && !p.IsAbstract);
+
 
 var app = builder.Build();
 
