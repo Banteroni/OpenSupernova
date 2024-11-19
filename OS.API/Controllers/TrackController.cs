@@ -22,8 +22,8 @@ public class TrackController(
     private readonly ISchedulerFactory _schedulerFactory = schedulerFactory;
 
     [HttpGet]
-    public async Task<IActionResult> GetTracks([FromQuery] [Optional] Guid albumId,
-        [FromQuery] [Optional] string? title)
+    public async Task<IActionResult> GetTracks([FromQuery][Optional] Guid albumId,
+        [FromQuery][Optional] string? title)
     {
         var tracks = await _repository.GetListAsync<Track>();
         if (albumId != Guid.Empty)
@@ -72,31 +72,26 @@ public class TrackController(
 
     [HttpPost]
     [DisableRequestSizeLimit]
-    public async Task<IActionResult> Upload([FromForm]string description, [FromForm]DateTime clientDate, IFormFile? file)
+    [RequestFormLimits(ValueLengthLimit = int.MaxValue, MultipartBodyLengthLimit = int.MaxValue)]
+    public async Task<IActionResult> Upload([FromForm] string description, [FromForm] DateTime clientDate, IFormFile? file)
     {
         if (file == null)
         {
             return BadRequest("No file provided");
         }
 
-        if (file.Headers.ContentType != "audio/flac" && file.Headers.ContentType != "application/zip" && file.Headers.ContentType != "audio/x-flac")
-        {
-            return BadRequest("Invalid content type");
-        }
-        
         await using var memoryStream = new MemoryStream();
         await file.CopyToAsync(memoryStream);
         var buffer = memoryStream.ToArray();
-        var tempObject = Guid.NewGuid().ToString();
         try
         {
-            var operationCompleted = await _tempStorageService.SaveFileAsync(buffer, tempObject);
+            var operationCompleted = await _tempStorageService.SaveFileAsync(buffer, file.Name);
             if (!operationCompleted)
             {
                 return BadRequest("Failed to save file, view logs for more information");
             }
 
-            var jobData = new JobDataMap { { "fileName", tempObject } };
+            var jobData = new JobDataMap { { "fileName", file.Name } };
 
             var job = JobBuilder.Create<ImportTracksJob>()
                 .WithIdentity(Guid.NewGuid().ToString(), "ImportGroup")

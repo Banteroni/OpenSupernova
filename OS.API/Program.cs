@@ -32,6 +32,7 @@ builder.Services.AddQuartz(x =>
         {
             store.UseSqlServer(quartzConnectionString);
         }
+        store.UseNewtonsoftJsonSerializer();
     });
 });
 
@@ -39,6 +40,8 @@ builder.Services.AddQuartzHostedService(options =>
 {
     options.WaitForJobsToComplete = true;
 });
+builder.Services.AddScheduler();
+builder.Services.AddSingleton<IJobManager, QuartzJobManager>();
 
 // Cors
 builder.Services.AddCors(options =>
@@ -72,11 +75,7 @@ if (builder.Environment.IsDevelopment())
     }
 }
 
-// Get all the BaseJob implementations
-var baseJobTypes = AppDomain.CurrentDomain.GetAssemblies()
-    .SelectMany(s => s.GetTypes())
-    .Where(p => typeof(BaseJob).IsAssignableFrom(p) && !p.IsAbstract);
-
+builder.Services.ScheduleJobs();
 
 var app = builder.Build();
 

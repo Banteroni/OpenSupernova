@@ -51,6 +51,6 @@ public class AlbumController(IRepository repository) : Controller
         {
             return NotFound();
         }
-        return Ok(album.Tracks);
+        return Ok(album.Tracks.OrderBy(x => x.Number));
     }
 }

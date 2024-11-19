@@ -12,6 +12,8 @@ namespace OS.Services.Jobs
 
         public Task FireAt(BaseJob job, DateTime time, Dictionary<string, string>? args = null);
 
-        public Task Schedule(BaseJob job, TimeSpan interval, Dictionary<string, string>? args = null);
+        public Task FireEvery(BaseJob job, string expr, Dictionary<string, string>? args = null);
+
+        public Task<bool> IsJobRunning<T>();
     }
 }

@@ -74,4 +74,22 @@ public class AzureStorageService : IStorageService
         var blobClient = _blobContainerClient.GetBlobClient(objectName);
         return await blobClient.ExistsAsync();
     }
+
+    public async Task<IEnumerable<string>> ListAllFilesAsync()
+    {
+        var blobs = _blobContainerClient.GetBlobsAsync()
+            .AsPages(default, int.MaxValue);
+
+        var files = new List<string>();
+
+        await foreach (var page in blobs)
+        {
+            foreach (var blob in page.Values)
+            {
+                files.Add(blob.Name);
+            }
+        }
+
+        return files.AsEnumerable();
+    }
 }

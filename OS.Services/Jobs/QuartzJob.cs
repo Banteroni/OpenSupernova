@@ -9,10 +9,11 @@ namespace OS.Services.Jobs
 {
     public class QuartzJob : IJob
     {
-        private BaseJob _baseJob;
-        public QuartzJob(BaseJob baseJob)
+        private List<BaseJob> _jobs;
+
+        public QuartzJob(List<BaseJob> jobs)
         {
-            _baseJob = baseJob;
+            _jobs = jobs;
         }
         public Task Execute(IJobExecutionContext context)
         {
@@ -20,7 +21,13 @@ namespace OS.Services.Jobs
             var args = jobData.ToDictionary(x => x.Key, x => x.Value.ToString());
             args = args.Where(x => x.Value is string).ToDictionary(x => x.Key, x => x.Value);
 
-            return _baseJob.ExecuteAsync(args!);
+            var jobName = context.JobDetail.Key.Name;
+            var baseJob = _jobs.FirstOrDefault(x => x.GetType().Name == jobName);
+            if (baseJob == null)
+            {
+                throw new Exception($"Job {jobName} not found");
+            }
+            return baseJob.ExecuteAsync(args!);
         }
     }
 }

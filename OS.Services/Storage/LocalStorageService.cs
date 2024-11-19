@@ -125,4 +125,20 @@ public class LocalStorageService : IStorageService, ITempStorageService
     {
         return _path;
     }
+
+    public Task<bool> IsFileZip(string objectName)
+    {
+        using (var stream = File.OpenRead(Path.Combine(_path, objectName)))
+        {
+            var buffer = new byte[4];
+            stream.Read(buffer, 0, 4);
+            return Task.FromResult(buffer[0] == 0x50 && buffer[1] == 0x4B && buffer[2] == 0x03 && buffer[3] == 0x04);
+        }
+    }
+
+    public Task<IEnumerable<string>> ListAllFilesAsync()
+    {
+        var files = Directory.GetFiles(_path);
+        return Task.FromResult(files.AsEnumerable());
+    }
 }

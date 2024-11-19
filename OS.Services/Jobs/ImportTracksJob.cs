@@ -54,7 +54,13 @@ public class ImportTracksJob(
 
         var filesToProcess = new List<string>();
         // If the file is zip archive, extract it
-        if (Path.GetExtension(fileName) == ".zip")
+        // read first 4 bytes to check if it's a zip archive
+        var isZipArchive = temporaryFileBytes.Length >= 4 &&
+                           temporaryFileBytes[0] == 0x50 &&
+                           temporaryFileBytes[1] == 0x4B &&
+                           temporaryFileBytes[2] == 0x03 &&
+                           temporaryFileBytes[3] == 0x04;
+        if (isZipArchive)
         {
             var filesExtracted = await _tempStorageService.ExtractZipAsync(fileName);
             filesToProcess = filesExtracted.ToList();
@@ -68,13 +74,7 @@ public class ImportTracksJob(
         {
             try
             {
-                var isFileGuid = Guid.TryParse(file, out var fileGuid);
-                if (!isFileGuid)
-                {
-                    _logger.LogError("File name is not a valid GUID, this should not happen");
-                    continue;
-                }
-
+                var trackGuid = Guid.NewGuid();
                 var fileBytes = await _tempStorageService.GetFileAsync(file);
                 if (fileBytes.Length == 0)
                 {
@@ -83,7 +83,7 @@ public class ImportTracksJob(
                 }
 
                 // Transcoding
-                await _transcoder.TranscodeAsync(file, file + ".opus");
+                await _transcoder.TranscodeAsync(file, trackGuid + ".opus");
 
                 // Metadata
                 var trackFile = new FlacFile(fileBytes);
@@ -185,11 +185,11 @@ public class ImportTracksJob(
 
                 var track = await _repository.CreateAsync(new Track()
                 {
-                    Id = fileGuid,
+                    Id = trackGuid,
                     Name = title,
                     Number = number ?? 0,
                     Album = album,
-                    FileObject = file + ".opus"
+                    FileObject = trackGuid + ".opus"
                 });
                 _logger.LogInformation($"Track {track?.Name} added to the database");
             }
