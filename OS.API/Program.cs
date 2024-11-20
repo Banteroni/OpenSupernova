@@ -22,26 +22,14 @@ builder.Services.AddLogging(x =>
 builder.Services.AddStorage();
 
 // Quartz
-builder.Services.AddQuartz(x =>
+builder.Services.AddQuartz(q =>
 {
-    x.UsePersistentStore(store =>
-    {
-        store.UseProperties = true;
-        var quartzConnectionString = builder.Configuration.GetConnectionString("QuartzDbContext");
-        if (quartzConnectionString != null)
-        {
-            store.UseSqlServer(quartzConnectionString);
-        }
-        store.UseNewtonsoftJsonSerializer();
-    });
-});
+    q.AddJob<ImportTracksJob>(j => j.StoreDurably().WithIdentity(ImportTracksJob.Key));
 
-builder.Services.AddQuartzHostedService(options =>
-{
-    options.WaitForJobsToComplete = true;
+    q.AddJob<TemporaryStorageCleanupJob>(j => j.WithIdentity(TemporaryStorageCleanupJob.Key));
+
+    q.AddTrigger(t => t.WithIdentity($"{nameof(TemporaryStorageCleanupJob)}-cron-trigger").ForJob(TemporaryStorageCleanupJob.Key).StartNow().WithCronSchedule("0 * * ? * *"));
 });
-builder.Services.AddScheduler();
-builder.Services.AddSingleton<IJobManager, QuartzJobManager>();
 
 // Cors
 builder.Services.AddCors(options =>
@@ -75,7 +63,7 @@ if (builder.Environment.IsDevelopment())
     }
 }
 
-builder.Services.ScheduleJobs();
+builder.Services.AddScheduler();
 
 var app = builder.Build();
 

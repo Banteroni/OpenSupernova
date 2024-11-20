@@ -14,7 +14,7 @@ namespace OS.API.Extensions
             }
             var scheduler = schedulerFactory.GetScheduler().Result;
             scheduler.Start();
-            services.AddSingleton<IScheduler>(x => scheduler);
+            services.AddSingleton(scheduler);
 
             return services;
         }

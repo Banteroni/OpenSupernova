@@ -1,21 +1,29 @@
 ﻿using OS.Services.Repository;
 using OS.Services.Storage;
+using Quartz;
 
 
 namespace OS.Services.Jobs
 {
-    public class TemporaryStorageCleanupJob : BaseJob
+    public class TemporaryStorageCleanupJob : IJob
     {
         private ITempStorageService _tempStorageService;
-        public TemporaryStorageCleanupJob(IJobManager jobManager, IRepository repository, ITempStorageService tempStorageService) : base(jobManager, repository)
+        private IRepository _repository;
+        private IScheduler _scheduler;
+
+        public static readonly JobKey Key = new JobKey(nameof(TemporaryStorageCleanupJob), "maintainance");
+        public TemporaryStorageCleanupJob(IRepository repository, ITempStorageService tempStorageService, IScheduler scheduler)
         {
             _tempStorageService = tempStorageService;
+            _repository = repository;
+            _scheduler = scheduler;
         }
 
-        public override async Task ExecuteAsync(Dictionary<string, string>? args = null)
+        public async Task Execute(IJobExecutionContext context)
         {
-            var isImportTracksJobRunning = await _jobManager.IsJobRunning<ImportTracksJob>();
-            if (isImportTracksJobRunning)
+            // check if job ImportStorageJob is running
+            var importJob = await _scheduler.GetJobDetail(ImportTracksJob.Key);
+            if (importJob != null)
             {
                 return;
             }
@@ -24,15 +32,7 @@ namespace OS.Services.Jobs
             {
                 await _tempStorageService.DeleteFileAsync(file);
             }
-
-
         }
 
-        public override void ScheduleAtStartup()
-        {
-            // cron every hour
-            var cronExpr = "0 0 * ? * *";
-            _jobManager.FireEvery(this, cronExpr);
-        }
     }
 }

@@ -23,6 +23,8 @@ public class ImportTracksJob(
     private readonly ITranscoder _transcoder = transcoderService;
     private readonly IRepository _repository = repository;
 
+    public static readonly JobKey Key = new JobKey(nameof(ImportTracksJob), "processing");
+
 
     public async Task Execute(IJobExecutionContext context)
     {
@@ -53,13 +55,7 @@ public class ImportTracksJob(
         }
 
         var filesToProcess = new List<string>();
-        // If the file is zip archive, extract it
-        // read first 4 bytes to check if it's a zip archive
-        var isZipArchive = temporaryFileBytes.Length >= 4 &&
-                           temporaryFileBytes[0] == 0x50 &&
-                           temporaryFileBytes[1] == 0x4B &&
-                           temporaryFileBytes[2] == 0x03 &&
-                           temporaryFileBytes[3] == 0x04;
+        var isZipArchive = await _tempStorageService.IsFileZip(fileName);
         if (isZipArchive)
         {
             var filesExtracted = await _tempStorageService.ExtractZipAsync(fileName);

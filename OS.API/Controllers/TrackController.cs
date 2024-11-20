@@ -14,12 +14,12 @@ public class TrackController(
     IRepository repository,
     ITempStorageService tempStorageService,
     IStorageService storageService,
-    ISchedulerFactory schedulerFactory) : Controller
+    IScheduler scheduler) : Controller
 {
     private readonly IRepository _repository = repository;
     private readonly ITempStorageService _tempStorageService = tempStorageService;
     private readonly IStorageService _storageService = storageService;
-    private readonly ISchedulerFactory _schedulerFactory = schedulerFactory;
+    private readonly IScheduler _scheduler = scheduler;
 
     [HttpGet]
     public async Task<IActionResult> GetTracks([FromQuery][Optional] Guid albumId,
@@ -92,23 +92,7 @@ public class TrackController(
             }
 
             var jobData = new JobDataMap { { "fileName", file.Name } };
-
-            var job = JobBuilder.Create<ImportTracksJob>()
-                .WithIdentity(Guid.NewGuid().ToString(), "ImportGroup")
-                .UsingJobData(jobData)
-                .Build();
-
-            var trigger = TriggerBuilder.Create()
-                .WithIdentity("ImportTracksTrigger", "ImportGroup")
-                .StartNow()
-                .Build();
-
-            var scheduler = await _schedulerFactory.GetScheduler();
-            if (!scheduler.IsStarted)
-            {
-                await scheduler.Start();
-            }
-            await scheduler.ScheduleJob(job, trigger);
+            await _scheduler.TriggerJob(ImportTracksJob.Key, jobData);
             return Ok();
         }
         catch (Exception e)
