@@ -47,13 +47,6 @@ public class ImportTracksJob(
             return;
         }
 
-        var temporaryFileBytes = await _tempStorageService.GetFileAsync(fileName);
-        if (temporaryFileBytes.Length == 0)
-        {
-            _logger.LogError($"Failed to get file {fileName}");
-            return;
-        }
-
         var filesToProcess = new List<string>();
         var isZipArchive = await _tempStorageService.IsFileZip(fileName);
         if (isZipArchive)
@@ -71,8 +64,8 @@ public class ImportTracksJob(
             try
             {
                 var trackGuid = Guid.NewGuid();
-                var fileBytes = await _tempStorageService.GetFileAsync(file);
-                if (fileBytes.Length == 0)
+                var fileStream = await _tempStorageService.GetFileStream(file);
+                if (fileStream == null || fileStream.Length == 0)
                 {
                     _logger.LogError($"Failed to get file {file}, skipping");
                     continue;
@@ -82,7 +75,7 @@ public class ImportTracksJob(
                 await _transcoder.TranscodeAsync(file, trackGuid + ".opus");
 
                 // Metadata
-                var trackFile = new FlacFile(fileBytes);
+                var trackFile = new FlacFile(fileStream);
                 var title = trackFile.GetTrackTitle();
                 var number = trackFile.GetTrackNumber();
                 var artistName = trackFile.GetTrackArtist();
@@ -141,10 +134,15 @@ public class ImportTracksJob(
                     var albumId = Guid.NewGuid();
                     // Get picture from the file
                     var cover = trackFile.GetPicture(MediaType.CoverFront);
-
-                    if (cover != null)
+                    if (cover?.Data != null)
                     {
-                        await _storageService.SaveFileAsync(cover.Data, $"{albumId}_cover");
+                        using (var stream = new MemoryStream(cover.Data))
+                        {
+                            if (stream != null)
+                            {
+                                await _storageService.SaveFileAsync(stream, $"{albumId}_cover");
+                            }
+                        }
                     }
 
 

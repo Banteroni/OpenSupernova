@@ -88,11 +88,12 @@ public class FfmpegTranscoder(
             }
 
             // get byte array from file
-            var bytes = await File.ReadAllBytesAsync(tempOutputLocation);
-
-            var isFileStored = await _storageService.SaveFileAsync(bytes, outputObject);
-            if (!isFileStored)
-                throw new Exception($"Failed to store file {outputObject}");
+            using (var fileStream = await _tempStorageService.GetFileStream(tempOutputLocation))
+            {
+                var isFileStored = await _storageService.SaveFileAsync(fileStream, outputObject);
+                if (!isFileStored)
+                    throw new Exception($"Failed to store file {outputObject}");
+            }
 
             await _tempStorageService.DeleteFileAsync(tempOutputLocation);
             await _tempStorageService.DeleteFileAsync(inputObject);

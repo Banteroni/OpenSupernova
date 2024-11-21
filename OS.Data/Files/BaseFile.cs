@@ -1,8 +1,8 @@
 ﻿namespace OS.Data.Files;
 
-public abstract class BaseFile(byte[] data)
+public abstract class BaseFile(Stream data)
 {
-    protected readonly byte[] Data = data;
+    protected readonly Stream Data = data;
     
     public abstract bool IsCorrectFormat();
 

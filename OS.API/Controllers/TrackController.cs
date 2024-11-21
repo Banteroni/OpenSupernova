@@ -60,14 +60,15 @@ public class TrackController(
             return NotFound();
         }
 
-        var stream = await _storageService.GetFileAsync(track.Id.ToString() + ".opus");
-
-        if (stream.Length == 0)
+        await using (var stream = await _storageService.GetFileStream(track.Id.ToString() + ".opus"))
         {
-            return NotFound("Transcoded file not found");
-        }
+            if (stream == null)
+            {
+                return NotFound("Transcoded file not found");
+            }
 
-        return File(stream, "audio/opus");
+            return File(stream, "audio/opus");
+        }
     }
 
     [HttpPost]
@@ -82,10 +83,9 @@ public class TrackController(
 
         await using var memoryStream = new MemoryStream();
         await file.CopyToAsync(memoryStream);
-        var buffer = memoryStream.ToArray();
         try
         {
-            var operationCompleted = await _tempStorageService.SaveFileAsync(buffer, file.Name);
+            var operationCompleted = await _tempStorageService.SaveFileAsync(memoryStream, file.Name);
             if (!operationCompleted)
             {
                 return BadRequest("Failed to save file, view logs for more information");

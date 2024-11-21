@@ -16,9 +16,8 @@ public class AzureStorageService : IStorageService
     }
 
 
-    public async Task<bool> SaveFileAsync(byte[] fileBytes, string objectName)
+    public async Task<bool> SaveFileAsync(Stream stream, string objectName)
     {
-        await using var stream = new MemoryStream(fileBytes);
         try
         {
             await _blobContainerClient.UploadBlobAsync(objectName, stream);
@@ -31,26 +30,18 @@ public class AzureStorageService : IStorageService
         }
     }
 
-    public async Task<byte[]> GetFileAsync(string objectName)
+    public async Task<Stream?> GetFileStream(string objectName)
     {
         try
         {
             var data = await _blobContainerClient.GetBlobClient(objectName).DownloadContentAsync();
-            await using var ms = data.Value.Content.ToStream();
-            var bytes = new byte[ms.Length];
-            var bytesRead = await ms.ReadAsync(bytes, 0, (int)ms.Length);
-            if (bytesRead != ms.Length)
-            {
-                _logger.LogError("Failed to read file from Azure Blob Storage");
-                return Array.Empty<byte>();
-            }
-
-            return bytes;
+            var ms = data.Value.Content.ToStream();
+            return ms;
         }
         catch (Exception ex)
         {
             _logger.LogError($"Failed to read file from Azure Blob Storage, {ex}");
-            return Array.Empty<byte>();
+            return null;
         }
     }
 
