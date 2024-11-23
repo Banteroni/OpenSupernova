@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OS.Data.Context;
 
@@ -11,9 +12,11 @@ using OS.Data.Context;
 namespace OS.Data.Migrations
 {
     [DbContext(typeof(OsDbContext))]
-    partial class OsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241123211058_Added playlists")]
+    partial class Addedplaylists
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

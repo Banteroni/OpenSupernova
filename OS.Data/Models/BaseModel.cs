@@ -1,8 +1,8 @@
 ﻿namespace OS.Data.Models;
 
-public class BaseModel
+public class  BaseModel
 {
     public Guid Id { get; init; }
-    public DateTime CreatedAt;
-    public DateTime UpdatedAt;
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }

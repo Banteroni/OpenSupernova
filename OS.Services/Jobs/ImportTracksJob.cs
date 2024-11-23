@@ -28,8 +28,8 @@ public class ImportTracksJob(
 
     public async Task Execute(IJobExecutionContext context)
     {
-        var jobData = context.JobDetail.JobDataMap;
-        var fileNameFound = jobData.TryGetString("fileName", out var fileName);
+        var jobData = context.MergedJobDataMap;
+        var fileNameFound = jobData.TryGetString("file", out var fileName);
         if (!fileNameFound)
         {
             _logger.LogError("File path not found in the job data");
@@ -78,8 +78,9 @@ public class ImportTracksJob(
                 var trackFile = new FlacFile(fileStream);
                 var title = trackFile.GetTrackTitle();
                 var number = trackFile.GetTrackNumber();
-                var artistName = trackFile.GetTrackArtist();
+                var trackArtists = trackFile.GetTrackArtists();
                 var albumName = trackFile.GetAlbumName();
+                var duration = trackFile.GetDuration();
                 var albumYear = trackFile.GetAlbumYear();
                 var albumGenre = trackFile.GetAlbumGenre();
                 var albumArtist = trackFile.GetAlbumArtist();
@@ -91,7 +92,7 @@ public class ImportTracksJob(
 
                 // Database operations
                 Artist artist;
-                if (artistName == null)
+                if (albumArtist == null)
                 {
                     var unknownArtist = ArtistConditionPresets.UnknownArtist();
                     var isUnknownArtistParsed = Guid.TryParse(unknownArtist.Value.ToString(), out var unknownArtistId);
@@ -109,13 +110,13 @@ public class ImportTracksJob(
                 }
                 else
                 {
-                    var condition = ArtistConditionPresets.ArtistNameSearch(artistName);
+                    var condition = ArtistConditionPresets.ArtistNameSearch(albumArtist);
                     var artistsInDb = (await _repository.GetListAsync<Artist>(condition)).ToList();
                     if (artistsInDb.Count == 0)
                     {
                         var newArtistInDb = await _repository.CreateAsync(new Artist()
                         {
-                            Name = artistName
+                            Name = albumArtist
                         });
                         artist = newArtistInDb!;
                     }
@@ -144,7 +145,6 @@ public class ImportTracksJob(
                             }
                         }
                     }
-
 
                     album = await _repository.CreateAsync(new Album()
                     {
@@ -176,23 +176,47 @@ public class ImportTracksJob(
                     _logger.LogWarning($"Track {title} already exists in the database, skipping");
                     continue;
                 }
-
+                List<Artist> artists = [];
+                if (trackArtists.Count() == 0)
+                {
+                    artists.Add(artist);
+                }
+                else
+                {
+                    foreach (var trackArtist in trackArtists)
+                    {
+                        var artistSearch = ArtistConditionPresets.ArtistNameSearch(trackArtist);
+                        var artistsInDb = (await _repository.GetListAsync<Artist>(artistSearch)).ToList();
+                        if (artistsInDb.Count == 0)
+                        {
+                            var newArtist = await _repository.CreateAsync(new Artist()
+                            {
+                                Name = trackArtist
+                            });
+                            artists.Add(newArtist!);
+                        }
+                        else
+                        {
+                            artists.Add(artistsInDb.FirstOrDefault()!);
+                        }
+                    }
+                }
                 var track = await _repository.CreateAsync(new Track()
                 {
                     Id = trackGuid,
                     Name = title,
+                    Duration = duration,
                     Number = number ?? 0,
                     Album = album,
-                    FileObject = trackGuid + ".opus"
+                    Artists = artists
                 });
                 _logger.LogInformation($"Track {track?.Name} added to the database");
             }
             catch (Exception e)
             {
                 _logger.LogError(e, $"Failed to process file {file}, skipping");
-                await _tempStorageService.DeleteFileAsync(file);
             }
-
+            await _tempStorageService.DeleteFileAsync(file);
         }
         await _tempStorageService.DeleteFileAsync(fileName);
     }

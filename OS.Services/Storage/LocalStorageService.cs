@@ -36,7 +36,8 @@ public class LocalStorageService : IStorageService, ITempStorageService
 
         try
         {
-            await File.Create(fullPath).CopyToAsync(stream);
+            using var fileStream = File.Create(fullPath);
+            await stream.CopyToAsync(fileStream);
             return true;
         }
         catch (Exception ex)

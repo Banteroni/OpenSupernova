@@ -16,7 +16,9 @@ public abstract class BaseFile(Stream data)
 
     public abstract string? GetTrackTitle();
 
-    public abstract string? GetTrackArtist();
+    public abstract int GetDuration();
+
+    public abstract IEnumerable<string> GetTrackArtists();
     
     public abstract string? GetTrackPerformer();
 

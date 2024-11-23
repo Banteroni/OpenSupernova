@@ -11,7 +11,7 @@ namespace OS.Services.Jobs
         private IRepository _repository;
         private IScheduler _scheduler;
 
-        public static readonly JobKey Key = new JobKey(nameof(TemporaryStorageCleanupJob), "maintainance");
+        public static readonly JobKey Key = new JobKey(nameof(TemporaryStorageCleanupJob), "maintenance");
         public TemporaryStorageCleanupJob(IRepository repository, ITempStorageService tempStorageService, IScheduler scheduler)
         {
             _tempStorageService = tempStorageService;

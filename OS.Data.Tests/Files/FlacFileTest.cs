@@ -15,7 +15,10 @@ public class FlacFileTest : IDisposable
     [SetUp]
     public void Setup()
     {
-        _stream = new FileStream("./dummy.flac", FileMode.Open, FileAccess.Read, FileShare.Read);
+        var CUSTOM_FILE_PATH = "C:\\Users\\lucad\\.oslocalstorage\\test.flac";
+
+        _stream = new FileStream(CUSTOM_FILE_PATH, FileMode.Open, FileAccess.Read);
+
         _flacFile = new Mock<FlacFile>(_stream);
         _flacFile.CallBase = true;
     }
@@ -24,6 +27,13 @@ public class FlacFileTest : IDisposable
     {
         var isCorrectFormat = _flacFile.Object.IsCorrectFormat();
         Assert.That(isCorrectFormat, Is.True);
+    }
+
+    [Test]
+    public void CheckDuration()
+    {
+        var duration = _flacFile.Object.GetDuration();
+        Assert.That(duration, Is.GreaterThan(0));
     }
 
     [Test]
@@ -79,10 +89,17 @@ public class FlacFileTest : IDisposable
     }
 
     [Test]
+    public void RetrieveTrackArtist()
+    {
+        var artist = _flacFile.Object.GetTrackArtists();
+        Assert.That(artist, Is.Not.Null);
+    }
+
+    [Test]
     public void RetrieveTwoProperties()
     {
         var title = _flacFile.Object.GetTrackTitle();
-        var artist = _flacFile.Object.GetTrackArtist();
+        var artist = _flacFile.Object.GetTrackArtists();
         Assert.That(title, Is.Not.Null);
         Assert.That(artist, Is.Not.Null);
     }

@@ -28,26 +28,29 @@ builder.Services.AddQuartz(q =>
 
     q.AddJob<TemporaryStorageCleanupJob>(j => j.WithIdentity(TemporaryStorageCleanupJob.Key));
 
-    q.AddTrigger(t => t.WithIdentity($"{nameof(TemporaryStorageCleanupJob)}-cron-trigger").ForJob(TemporaryStorageCleanupJob.Key).StartNow().WithCronSchedule("0 * * ? * *"));
-});
+    q.AddJob<StorageCleanupJob>(j => j.WithIdentity(StorageCleanupJob.Key));
 
-// Cors
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(
-        builderOpts =>
-        {
-            builderOpts.AllowAnyOrigin()
-                .AllowAnyMethod()
-                .AllowAnyHeader();
-        });
+    q.AddTrigger(t => t.WithIdentity($"{nameof(TemporaryStorageCleanupJob)}-cron-trigger").ForJob(TemporaryStorageCleanupJob.Key).StartNow().WithCronSchedule("0 0/45 * * * ?"));
+
+    q.AddTrigger(t => t.WithIdentity($"{nameof(StorageCleanupJob)}-cron-trigger").ForJob(StorageCleanupJob.Key).StartNow().WithCronSchedule("0 0/45 * * * ?"));
 });
 
 // Transcoder
 builder.Services.AddTranscoder();
 
+// Connection string retrievals, repository and cors
 if (builder.Environment.IsDevelopment())
 {
+    builder.Services.AddCors(options =>
+    {
+        options.AddDefaultPolicy(
+            builderOpts =>
+            {
+                builderOpts.AllowAnyOrigin()
+                    .AllowAnyMethod()
+                    .AllowAnyHeader();
+            });
+    });
     var connectionString = builder.Configuration.GetConnectionString("OsDbContext");
     if (connectionString == null)
     {
@@ -62,7 +65,16 @@ if (builder.Environment.IsDevelopment())
         builder.Services.AddScoped<IRepository, SqlRepository>();
     }
 }
+else
+{
+    builder.Services.AddDbContext<OsDbContext>(options =>
+    {
+        options.UseSqlServer(builder.Configuration.GetConnectionString("OsDbContext"));
+    });
+    builder.Services.AddScoped<IRepository, SqlRepository>();
+}
 
+// Scheduler
 builder.Services.AddScheduler();
 
 var app = builder.Build();

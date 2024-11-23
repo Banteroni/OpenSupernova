@@ -175,8 +175,42 @@ public class ImportTracksJobTest
         _tempStorageService.Setup(x => x.IsFileZip(It.IsAny<string>())).ReturnsAsync(false);
         _tempStorageService.Setup(x => x.FileExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
         _tempStorageService.Setup(x => x.GetFileStream(It.IsAny<string>())).ReturnsAsync(memoryStream);
-        _repository.Setup(x => x.GetAsync<Artist>(It.IsAny<Guid>(), It.IsAny<string[]>())).ReturnsAsync(new Artist { Id = Guid.NewGuid(), Name = "Unknown" });
+        _repository.Setup(x => x.CreateAsync<Album>(It.IsAny<Album>())).ReturnsAsync(new Album { Id = Guid.NewGuid(), Name = "Unknown" });
+        _repository.Setup(x => x.GetAsync<Artist>(It.IsAny<Guid>(), It.IsAny<string[]?>())).ReturnsAsync(new Artist { Id = Guid.NewGuid(), Name = "Unknown" });
+
+        // Act
         await _job.Execute(context.Object);
+
+        // Assert
+        VerifyMessageWasCalled("added to the database", LogLevel.Information);
+    }
+
+    [Test]
+    public async Task ImportTracksJobArtistUnknownNotFound()
+    {
+        // Arrange
+        var jobData = new JobDataMap();
+        jobData.Add("fileName", "dummy.flac");
+        var context = new Mock<IJobExecutionContext>();
+        context.Setup(x => x.JobDetail.JobDataMap).Returns(jobData);
+
+        using var stream = File.OpenRead("dummy.flac");
+        using var memoryStream = new MemoryStream();
+        stream.CopyTo(memoryStream);
+        ManipulateVorbisComment(FlacVorbisCommentField.Artist, memoryStream, "");
+        memoryStream.Position = 0;
+
+
+        _tempStorageService.Setup(x => x.IsFileZip(It.IsAny<string>())).ReturnsAsync(false);
+        _tempStorageService.Setup(x => x.FileExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
+        _tempStorageService.Setup(x => x.GetFileStream(It.IsAny<string>())).ReturnsAsync(memoryStream);
+        _repository.Setup(x => x.CreateAsync<Album>(It.IsAny<Album>())).ReturnsAsync(new Album { Id = Guid.NewGuid(), Name = "Unknown" });
+
+        // Act
+        await _job.Execute(context.Object);
+
+        // Assert
+        VerifyMessageWasCalled("Failed to process file", LogLevel.Error);
     }
 
     [Test]

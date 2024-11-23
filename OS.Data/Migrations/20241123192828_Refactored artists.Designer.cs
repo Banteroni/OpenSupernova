@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OS.Data.Context;
 
@@ -11,9 +12,11 @@ using OS.Data.Context;
 namespace OS.Data.Migrations
 {
     [DbContext(typeof(OsDbContext))]
-    partial class OsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241123192828_Refactored artists")]
+    partial class Refactoredartists
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -50,9 +53,6 @@ namespace OS.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("Genre")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
@@ -61,9 +61,6 @@ namespace OS.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<int>("Year")
                         .HasColumnType("int");
@@ -85,9 +82,6 @@ namespace OS.Data.Migrations
                         .HasMaxLength(3096)
                         .HasColumnType("nvarchar(3096)");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("Image")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
@@ -97,9 +91,6 @@ namespace OS.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
                     b.HasKey("Id");
 
                     b.ToTable("Artists");
@@ -108,26 +99,8 @@ namespace OS.Data.Migrations
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000001"),
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Name = "Unknown",
-                            UpdatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                            Name = "Unknown"
                         });
-                });
-
-            modelBuilder.Entity("OS.Data.Models.Playlist", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Playlists");
                 });
 
             modelBuilder.Entity("OS.Data.Models.Track", b =>
@@ -138,9 +111,6 @@ namespace OS.Data.Migrations
 
                     b.Property<Guid?>("AlbumId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<int?>("Duration")
                         .HasColumnType("int");
@@ -153,29 +123,11 @@ namespace OS.Data.Migrations
                     b.Property<int>("Number")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
                     b.HasKey("Id");
 
                     b.HasIndex("AlbumId");
 
                     b.ToTable("Tracks");
-                });
-
-            modelBuilder.Entity("PlaylistTrack", b =>
-                {
-                    b.Property<Guid>("PlaylistsId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("TracksId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("PlaylistsId", "TracksId");
-
-                    b.HasIndex("TracksId");
-
-                    b.ToTable("PlaylistTrack");
                 });
 
             modelBuilder.Entity("ArtistTrack", b =>
@@ -211,21 +163,6 @@ namespace OS.Data.Migrations
                         .HasForeignKey("AlbumId");
 
                     b.Navigation("Album");
-                });
-
-            modelBuilder.Entity("PlaylistTrack", b =>
-                {
-                    b.HasOne("OS.Data.Models.Playlist", null)
-                        .WithMany()
-                        .HasForeignKey("PlaylistsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("OS.Data.Models.Track", null)
-                        .WithMany()
-                        .HasForeignKey("TracksId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("OS.Data.Models.Album", b =>

@@ -61,6 +61,22 @@ public class FlacFile(Stream data) : BaseFile(data)
         return ExtractVorbisComment(FlacVorbisCommentField.Album);
     }
 
+    public override int GetDuration()
+    {
+        var metadata = FindCorrectMetadataSection(BlockType.StreamInfo);
+        var block = metadata.First();
+        using var stream = new MemoryStream(block);
+        using var reader = new BinaryReader(stream);
+        reader.BaseStream.Seek(10, SeekOrigin.Begin);
+        var bytes = reader.ReadBytes(3);
+        var sampleRate = (bytes[0] << 12) | (bytes[1] << 4) | (bytes[2] >> 4);
+        bytes = reader.ReadBytes(5);
+        bytes[0] &= 0x0F;
+        var duration = (bytes[0] << 32) | (bytes[1] << 24) | (bytes[2] << 16) | (bytes[3] << 8) | bytes[4];
+
+        return (int)(duration / sampleRate);
+    }
+
     public override int? GetAlbumYear()
     {
         var year = ExtractVorbisComment(FlacVorbisCommentField.Year);
@@ -96,9 +112,10 @@ public class FlacFile(Stream data) : BaseFile(data)
         return ExtractVorbisComment(FlacVorbisCommentField.Title);
     }
 
-    public override string? GetTrackArtist()
+    public override IEnumerable<string> GetTrackArtists()
     {
-        return ExtractVorbisComment(FlacVorbisCommentField.Artist);
+        var trackArtist = ExtractVorbisComment(FlacVorbisCommentField.Artist);
+        return trackArtist == null ? new string[0] : trackArtist.Split(';');
     }
 
     public override int? GetTrackNumber()
@@ -163,7 +180,7 @@ public class FlacFile(Stream data) : BaseFile(data)
         return new MetadataPicture(pictureType, mimeType, description, dataBytes, width, height);
     }
 
-    public virtual string? ExtractVorbisComment(string comment)
+    protected virtual string? ExtractVorbisComment(string comment)
     {
         var metadata = FindCorrectMetadataSection(BlockType.VorbisComment);
         var bytesEnumerable = metadata.ToList();

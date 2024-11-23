@@ -8,6 +8,7 @@ public class OsDbContext(DbContextOptions<OsDbContext> options) : DbContext(opti
     public DbSet<Album> Albums { get; set; }
     public DbSet<Artist> Artists { get; set; }
     public DbSet<Track> Tracks { get; set; }
+    public DbSet<Playlist> Playlists { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -19,5 +20,25 @@ public class OsDbContext(DbContextOptions<OsDbContext> options) : DbContext(opti
             }
         );
         base.OnModelCreating(modelBuilder);
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        if (ChangeTracker.HasChanges())
+        {
+            var entries = ChangeTracker.Entries().Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
+            foreach (var entry in entries)
+            {
+                if (entry.Entity is BaseModel model)
+                {
+                    if (entry.State == EntityState.Added)
+                    {
+                        model.CreatedAt = DateTime.UtcNow;
+                    }
+                    model.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+        }
+        return base.SaveChangesAsync(cancellationToken);
     }
 }

@@ -80,18 +80,17 @@ public class TrackController(
         {
             return BadRequest("No file provided");
         }
-
-        await using var memoryStream = new MemoryStream();
-        await file.CopyToAsync(memoryStream);
+        var guid = Guid.NewGuid().ToString();
+        var stream = file.OpenReadStream();
         try
         {
-            var operationCompleted = await _tempStorageService.SaveFileAsync(memoryStream, file.Name);
+            var operationCompleted = await _tempStorageService.SaveFileAsync(stream, guid);
             if (!operationCompleted)
             {
                 return BadRequest("Failed to save file, view logs for more information");
             }
 
-            var jobData = new JobDataMap { { "fileName", file.Name } };
+            var jobData = new JobDataMap { { "file", guid } };
             await _scheduler.TriggerJob(ImportTracksJob.Key, jobData);
             return Ok();
         }
@@ -99,5 +98,6 @@ public class TrackController(
         {
             return BadRequest(e.Message);
         }
+
     }
 }
