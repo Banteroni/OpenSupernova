@@ -100,9 +100,22 @@ public static class StorageExtension
         }
 
         var storageSettings = GetStorageFromKey(configuration, StoragePurpose.StorageSettings);
+        if (storageSettings == null)
+        {
+            throw new Exception("StorageSettings not found in configuration");
+        }
+        // create folder if not exists
+        if (storageSettings is LocalStorageSettings localSettings && localSettings.Path != null)
+        {
+            Directory.CreateDirectory(localSettings.Path);
+        }
         LoadStorageServiceFromGivenSetting(services, storageSettings, StoragePurpose.StorageSettings);
 
         var tempStorageSettings = GetStorageFromKey(configuration, StoragePurpose.TemporaryStorageSettings);
+        if (tempStorageSettings == null)
+        {
+            tempStorageSettings = new LocalStorageSettings { Path = Path.Combine(Path.GetTempPath(), "temp") };
+        }
         LoadStorageServiceFromGivenSetting(services, tempStorageSettings, StoragePurpose.TemporaryStorageSettings);
 
         return services;

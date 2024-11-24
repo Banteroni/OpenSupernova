@@ -7,7 +7,6 @@ public class Artist : BaseModel
 {
     [MaxLength(255)] public required string Name { get; set; }
     [MaxLength(3096)] public string? Bio { get; set; }
-    [MaxLength(255)] public string? Image { get; set; }
 
     // Navigation properties
     [JsonIgnore]

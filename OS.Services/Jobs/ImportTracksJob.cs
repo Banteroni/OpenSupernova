@@ -152,8 +152,7 @@ public class ImportTracksJob(
                         Name = albumName,
                         Year = albumYear ?? 0,
                         Artist = artist,
-                        Genre = albumGenre,
-                        CoverPath = cover != null ? $"{albumId}_cover" : null
+                        Genre = albumGenre
                     });
                 }
                 else

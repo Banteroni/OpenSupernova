@@ -3,13 +3,15 @@ using Microsoft.AspNetCore.Mvc;
 using OS.Data.Models;
 using OS.Data.Repository.Conditions;
 using OS.Services.Repository;
+using OS.Services.Storage;
 
 namespace OS.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AlbumController(IRepository repository) : Controller
+public class AlbumController(IRepository repository, IStorageService storageService) : Controller
 {
+    private readonly IStorageService _storageService = storageService;
     private readonly IRepository _repository = repository;
     [HttpGet]
     public async Task<IActionResult> GetAlbums([FromQuery][Optional] string? title, [FromQuery][Optional] int? year, [FromQuery][Optional] string? artist)
@@ -27,13 +29,13 @@ public class AlbumController(IRepository repository) : Controller
         {
             compositeCondition.AddCondition(new SimpleCondition("Name", Operator.Contains, artist, nameof(Artist)));
         }
-        
+
         var albums = await _repository.GetListAsync<Album>(compositeCondition, [nameof(Artist)]);
         return Ok(albums);
     }
-    
+
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetAlbum([FromRoute]Guid id)
+    public async Task<IActionResult> GetAlbum([FromRoute] Guid id)
     {
         var album = await _repository.GetAsync<Album>(id, [nameof(Artist)]);
         if (album == null)
@@ -42,15 +44,30 @@ public class AlbumController(IRepository repository) : Controller
         }
         return Ok(album);
     }
-    
+
     [HttpGet("{id}/tracks")]
-    public async Task<IActionResult> GetAlbumTracks([FromRoute]Guid id)
+    public async Task<IActionResult> GetAlbumTracks([FromRoute] Guid id)
     {
-        var album = await _repository.GetAsync<Album>(id, new []{nameof(Album.Tracks)});
+        var album = await _repository.GetAsync<Album>(id, new[] { nameof(Album.Tracks) });
         if (album == null)
         {
             return NotFound();
         }
         return Ok(album.Tracks.OrderBy(x => x.Number));
+    }
+    [HttpGet("{id}/cover")]
+    public async Task<IActionResult> GetAlbumCover([FromRoute] Guid id)
+    {
+        var album = await _repository.GetAsync<Album>(id);
+        if (album == null)
+        {
+            return NotFound("Album not found");
+        }
+        var cover = await _storageService.GetFileStream($"{id}_cover");
+        if (cover == null)
+        {
+            return NotFound("Album cover not found");
+        }
+        return File(cover, "image/jpeg");
     }
 }
