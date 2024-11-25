@@ -39,14 +39,14 @@ public class MockRepository : BaseRepository, IRepository
         return Task.FromResult(response);
     }
 
-    public Task<T> CreateAsync<T>(T entity) where T : BaseModel
+    public Task<T> CreateAsync<T>(T entity, bool saveNow = true) where T : BaseModel
     {
         var entities = _extractCorrectList<T>();
         entities.Add(entity);
         return Task.FromResult(entity);
     }
 
-    public Task<T?> UpdateAsync<T>(T entity, Guid id) where T : BaseModel
+    public Task<T?> UpdateAsync<T>(T entity, Guid id, bool saveNow = true) where T : BaseModel
     {
         var entities = _extractCorrectList<T>();
         var entityToUpdate = entities.FirstOrDefault(x => x.Id == id);
@@ -59,7 +59,7 @@ public class MockRepository : BaseRepository, IRepository
         return Task.FromResult(entityToUpdate);
     }
 
-    public Task<bool> DeleteAsync<T>(Guid id) where T : BaseModel
+    public Task<bool> DeleteAsync<T>(Guid id, bool saveNow = true) where T : BaseModel
     {
         var entities = _extractCorrectList<T>();
         var entityToDelete = entities.FirstOrDefault(x => x.Id == id);
@@ -97,5 +97,10 @@ public class MockRepository : BaseRepository, IRepository
     {
         var entities = _extractCorrectList<T>();
         return entities.AsQueryable();
+    }
+
+    public Task SaveChangesAsync()
+    {
+        return Task.CompletedTask;
     }
 }

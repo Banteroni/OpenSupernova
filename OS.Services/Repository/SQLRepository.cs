@@ -51,21 +51,27 @@ public class SqlRepository(OsDbContext context) : BaseRepository, IRepository
         return response;
     }
 
-    public async Task<T> CreateAsync<T>(T entity) where T : BaseModel
+    public async Task<T> CreateAsync<T>(T entity, bool saveNow = true) where T : BaseModel
     {
         var response = await _context.Set<T>().AddAsync(entity);
-        await _context.SaveChangesAsync();
+        if (saveNow)
+        {
+            await _context.SaveChangesAsync();
+        }
         return response.Entity;
     }
 
-    public async Task<T> UpdateAsync<T>(T entity, Guid id) where T : BaseModel
+    public async Task<T> UpdateAsync<T>(T entity, Guid id, bool saveNow = true) where T : BaseModel
     {
         var response = _context.Set<T>().Update(entity);
-        await _context.SaveChangesAsync();
+        if (saveNow)
+        {
+            await _context.SaveChangesAsync();
+        }
         return response.Entity;
     }
 
-    public async Task<bool> DeleteAsync<T>(Guid id) where T : BaseModel
+    public async Task<bool> DeleteAsync<T>(Guid id, bool saveNow = true) where T : BaseModel
     {
         var entity = await _context.Set<T>().FindAsync(id);
         if (entity == null)
@@ -74,7 +80,16 @@ public class SqlRepository(OsDbContext context) : BaseRepository, IRepository
         }
 
         _context.Set<T>().Remove(entity);
+        if (saveNow)
+        {
+            await _context.SaveChangesAsync();
+        }
         await _context.SaveChangesAsync();
         return true;
+    }
+
+    public async Task SaveChangesAsync()
+    {
+        await _context.SaveChangesAsync();
     }
 }

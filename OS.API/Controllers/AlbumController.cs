@@ -8,7 +8,7 @@ using OS.Services.Storage;
 namespace OS.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/albums")]
 public class AlbumController(IRepository repository, IStorageService storageService) : Controller
 {
     private readonly IStorageService _storageService = storageService;
@@ -58,16 +58,21 @@ public class AlbumController(IRepository repository, IStorageService storageServ
     [HttpGet("{id}/cover")]
     public async Task<IActionResult> GetAlbumCover([FromRoute] Guid id)
     {
-        var album = await _repository.GetAsync<Album>(id);
+        var album = await _repository.GetAsync<Album>(id, [nameof(Album.StoredEntities)]);
         if (album == null)
         {
             return NotFound("Album not found");
         }
-        var cover = await _storageService.GetFileStream($"{id}_cover");
+        var cover = album.StoredEntities.FirstOrDefault(x => x.Type == StoredEntityType.AlbumCover);
         if (cover == null)
         {
             return NotFound("Album cover not found");
         }
-        return File(cover, "image/jpeg");
+        var stream = await _storageService.GetFileStream(cover.Id.ToString());
+        if (stream == null)
+        {
+            return Problem();
+        }
+        return File(stream, cover.Mime);
     }
 }

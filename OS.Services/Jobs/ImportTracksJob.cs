@@ -21,13 +21,14 @@ public class ImportTracksJob(
     private readonly IStorageService _storageService = storageService;
     private readonly ITempStorageService _tempStorageService = tempStorageService;
     private readonly ITranscoder _transcoder = transcoderService;
-    private readonly IRepository _repository = repository;
+    private readonly IRepository _repository = repository; 
 
     public static readonly JobKey Key = new JobKey(nameof(ImportTracksJob), "processing");
 
 
     public async Task Execute(IJobExecutionContext context)
     {
+        var savedStorageFiles = new List<string>();
         var jobData = context.MergedJobDataMap;
         var fileNameFound = jobData.TryGetString("file", out var fileName);
         if (!fileNameFound)
@@ -71,8 +72,16 @@ public class ImportTracksJob(
                     continue;
                 }
 
+                var storedStreamFile = new StoredEntity()
+                {
+                    Id = Guid.NewGuid(),
+                    Type = StoredEntityType.Stream,
+                    Mime = "audio/ogg"
+                };
+
                 // Transcoding
-                await _transcoder.TranscodeAsync(file, trackGuid + ".opus");
+                await _transcoder.TranscodeAsync(file, storedStreamFile.Id.ToString());
+                savedStorageFiles.Add(storedStreamFile.Id.ToString());
 
                 // Metadata
                 var trackFile = new FlacFile(fileStream);
@@ -117,7 +126,7 @@ public class ImportTracksJob(
                         var newArtistInDb = await _repository.CreateAsync(new Artist()
                         {
                             Name = albumArtist
-                        });
+                        }, false);
                         artist = newArtistInDb!;
                     }
                     else
@@ -132,28 +141,32 @@ public class ImportTracksJob(
                 var albumsInDb = (await _repository.GetListAsync<Album>(albumSearch)).ToList();
                 if (albumsInDb.Count == 0)
                 {
-                    var albumId = Guid.NewGuid();
-                    // Get picture from the file
-                    var cover = trackFile.GetPicture(MediaType.CoverFront);
-                    if (cover?.Data != null)
-                    {
-                        using (var stream = new MemoryStream(cover.Data))
-                        {
-                            if (stream != null)
-                            {
-                                await _storageService.SaveFileAsync(stream, $"{albumId}_cover");
-                            }
-                        }
-                    }
 
                     album = await _repository.CreateAsync(new Album()
                     {
-                        Id = albumId,
                         Name = albumName,
                         Year = albumYear ?? 0,
                         Artist = artist,
                         Genre = albumGenre
-                    });
+                    }, false);
+
+                    var pictures = trackFile.GetPictures();
+                    foreach (var picture in pictures)
+                    {
+                        var pictureGuid = Guid.NewGuid();
+                        var pictureStream = new MemoryStream(picture.Data);
+                        var isCover = picture.Type == MediaType.CoverFront;
+                        var pictureStoredEntity = new StoredEntity()
+                        {
+                            Id = pictureGuid,
+                            Type = isCover ? StoredEntityType.AlbumCover : StoredEntityType.AlbumHelper,
+                            Mime = picture.MimeType,
+                            Album = album
+                        };
+                        await _repository.CreateAsync(pictureStoredEntity, false);
+                        await _storageService.SaveFileAsync(pictureStream, pictureStoredEntity.Id.ToString());
+                        savedStorageFiles.Add(pictureStoredEntity.Id.ToString());
+                    }
                 }
                 else
                 {
@@ -191,7 +204,7 @@ public class ImportTracksJob(
                             var newArtist = await _repository.CreateAsync(new Artist()
                             {
                                 Name = trackArtist
-                            });
+                            }, false);
                             artists.Add(newArtist!);
                         }
                         else
@@ -208,12 +221,35 @@ public class ImportTracksJob(
                     Number = number ?? 0,
                     Album = album,
                     Artists = artists
-                });
-                _logger.LogInformation($"Track {track?.Name} added to the database");
+                }, false);
+
+                storedStreamFile.Track = track;
+                if (Environment.GetEnvironmentVariable("StoreOrigin") == "1")
+                {
+                    var storedLosslessFile = new StoredEntity()
+                    {
+                        Id = Guid.NewGuid(),
+                        Type = StoredEntityType.Origin,
+                        Mime = "audio/ogg",
+                        Track = track
+                    };
+                    await _repository.CreateAsync(storedLosslessFile, false);
+                    await _storageService.SaveFileAsync(fileStream, storedLosslessFile.Id.ToString());
+                    savedStorageFiles.Add(storedLosslessFile.Id.ToString());
+                }
+
+                await _repository.CreateAsync(storedStreamFile, false);
+
+                await _repository.SaveChangesAsync();
             }
             catch (Exception e)
             {
                 _logger.LogError(e, $"Failed to process file {file}, skipping");
+                savedStorageFiles.ForEach(async f => await _storageService.DeleteFileAsync(f));
+            }
+            finally
+            {
+                _logger.LogInformation($"File {file} added correctly");
             }
             await _tempStorageService.DeleteFileAsync(file);
         }

@@ -9,17 +9,18 @@ using Quartz;
 namespace OS.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/tracks")]
 public class TrackController(
     IRepository repository,
     ITempStorageService tempStorageService,
     IStorageService storageService,
-    IScheduler scheduler) : Controller
+    IScheduler scheduler, ILogger<TrackController> logger) : Controller
 {
     private readonly IRepository _repository = repository;
     private readonly ITempStorageService _tempStorageService = tempStorageService;
     private readonly IStorageService _storageService = storageService;
     private readonly IScheduler _scheduler = scheduler;
+    private readonly ILogger<TrackController> _logger = logger;
 
     [HttpGet]
     public async Task<IActionResult> GetTracks([FromQuery][Optional] Guid albumId,
@@ -52,23 +53,43 @@ public class TrackController(
     }
 
     [HttpGet("{id}/stream")]
-    public async Task<IActionResult> GetTrackStream([FromRoute] Guid id)
+    public async Task<IActionResult> GetTrackStream([FromRoute] Guid id, [FromQuery] bool requestOrigin = false)
     {
-        var track = await _repository.GetAsync<Track>(id);
+        var track = await _repository.GetAsync<Track>(id, [nameof(Track.StoredEntities)]);
         if (track == null)
         {
             return NotFound();
         }
 
-        await using (var stream = await _storageService.GetFileStream(track.Id.ToString() + ".opus"))
+        var origin = track.StoredEntities.FirstOrDefault(x => x.Type == StoredEntityType.Origin);
+        var stream = track.StoredEntities.FirstOrDefault(x => x.Type == StoredEntityType.Stream);
+        if (requestOrigin)
         {
-            if (stream == null)
+            if (origin == null)
             {
-                return NotFound("Transcoded file not found");
+                _logger.LogWarning($"Couldn't find the origin of file for track {id}", id);
             }
-
-            return File(stream, "audio/opus");
+            else
+            {
+                var originStream = await _storageService.GetFileStream((string)origin.Id.ToString());
+                if (originStream == null)
+                {
+                    return Problem("Origin file was found in the database, however it couldn't be found in the storage");
+                }
+                return File(originStream, origin.Mime);
+            }
         }
+        if (stream == null)
+        {
+            return Problem("Stream file was not found in the database");
+        }
+        var streamStream = await _storageService.GetFileStream((string)stream.Id.ToString());
+        if (streamStream == null)
+        {
+            return Problem("Stream file was found in the database, however it couldn't be found in the storage");
+        }
+        return File(streamStream, stream.Mime);
+
     }
 
     [HttpPost]

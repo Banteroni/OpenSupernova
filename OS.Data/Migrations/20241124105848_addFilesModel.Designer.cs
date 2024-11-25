@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OS.Data.Context;
 
@@ -11,9 +12,11 @@ using OS.Data.Context;
 namespace OS.Data.Migrations
 {
     [DbContext(typeof(OsDbContext))]
-    partial class OsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241124105848_addFilesModel")]
+    partial class addFilesModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -141,9 +144,6 @@ namespace OS.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid?>("PlaylistId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<Guid?>("TrackId")
                         .HasColumnType("uniqueidentifier");
 
@@ -158,8 +158,6 @@ namespace OS.Data.Migrations
                     b.HasIndex("AlbumId");
 
                     b.HasIndex("ArtistId");
-
-                    b.HasIndex("PlaylistId");
 
                     b.HasIndex("TrackId");
 
@@ -243,19 +241,15 @@ namespace OS.Data.Migrations
             modelBuilder.Entity("OS.Data.Models.StoredEntity", b =>
                 {
                     b.HasOne("OS.Data.Models.Album", "Album")
-                        .WithMany("StoredEntities")
+                        .WithMany()
                         .HasForeignKey("AlbumId");
 
                     b.HasOne("OS.Data.Models.Artist", "Artist")
-                        .WithMany("StoredEntities")
+                        .WithMany()
                         .HasForeignKey("ArtistId");
 
-                    b.HasOne("OS.Data.Models.Playlist", null)
-                        .WithMany("StoredEntities")
-                        .HasForeignKey("PlaylistId");
-
                     b.HasOne("OS.Data.Models.Track", "Track")
-                        .WithMany("StoredEntities")
+                        .WithMany()
                         .HasForeignKey("TrackId");
 
                     b.Navigation("Album");
@@ -291,26 +285,12 @@ namespace OS.Data.Migrations
 
             modelBuilder.Entity("OS.Data.Models.Album", b =>
                 {
-                    b.Navigation("StoredEntities");
-
                     b.Navigation("Tracks");
                 });
 
             modelBuilder.Entity("OS.Data.Models.Artist", b =>
                 {
                     b.Navigation("Albums");
-
-                    b.Navigation("StoredEntities");
-                });
-
-            modelBuilder.Entity("OS.Data.Models.Playlist", b =>
-                {
-                    b.Navigation("StoredEntities");
-                });
-
-            modelBuilder.Entity("OS.Data.Models.Track", b =>
-                {
-                    b.Navigation("StoredEntities");
                 });
 #pragma warning restore 612, 618
         }

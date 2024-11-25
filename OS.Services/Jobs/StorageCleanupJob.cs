@@ -27,14 +27,14 @@ namespace OS.Services.Jobs
                 return;
             }
             var files = await _storageService.ListAllFilesAsync();
-            var tracks = await _repository.GetListAsync<Track>();
-            var albums = await _repository.GetListAsync<Album>();
+            var entities = await _repository.GetListAsync<StoredEntity>();
 
-            // Get all files that are not used by any track, or albumid_cover
-            var filesToDelete = files.Where(f => !tracks.Any(t => $"{t.Id}.opus" == f) || !albums.Any(x => $"{x.Id.ToString()}_cover" == f)).ToList();
-            foreach (var file in filesToDelete)
+            foreach (var file in files)
             {
-                await _storageService.DeleteFileAsync(file);
+                if (!entities.Any(e => e.Id.ToString() == file))
+                {
+                    await _storageService.DeleteFileAsync(file);
+                }
             }
         }
     }

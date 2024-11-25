@@ -13,9 +13,11 @@ public interface IRepository
 
     public Task<T?> GetAsync<T>(Guid id, string[]? entitiesToInclude = null) where T : BaseModel;
 
-    public Task<T> CreateAsync<T>(T entity) where T : BaseModel;
+    public Task<T> CreateAsync<T>(T entity, bool saveChanges = true) where T : BaseModel;
 
-    public Task<T> UpdateAsync<T>(T entity, Guid id) where T : BaseModel;
+    public Task<T> UpdateAsync<T>(T entity, Guid id, bool saveChanges = true) where T : BaseModel;
 
-    public Task<bool> DeleteAsync<T>(Guid id) where T : BaseModel;
+    public Task<bool> DeleteAsync<T>(Guid id, bool saveChanges = true) where T : BaseModel;
+
+    public Task SaveChangesAsync();
 }

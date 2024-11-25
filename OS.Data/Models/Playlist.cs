@@ -13,5 +13,7 @@ namespace OS.Data.Models
         [MaxLength(255)]
         public required string Name { get; set; }
         public ICollection<Track> Tracks { get; } = [];
+
+        public ICollection<StoredEntity> StoredEntities { get; set; } = [];
     }
 }

@@ -7,6 +7,8 @@ using OS.Services.Repository;
 
 namespace OS.API.Controllers;
 
+[ApiController]
+[Route("api/artists")]
 public class ArtistController(
     IRepository repository) : Controller
 {

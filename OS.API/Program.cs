@@ -1,7 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using OS.Data.Context;
-using OS.Data.Options;
-using OS.Services.Codec;
 using OS.Services.Repository;
 using Quartz;
 using OS.API.Extensions;
@@ -33,6 +31,12 @@ builder.Services.AddQuartz(q =>
     q.AddTrigger(t => t.WithIdentity($"{nameof(TemporaryStorageCleanupJob)}-cron-trigger").ForJob(TemporaryStorageCleanupJob.Key).StartNow().WithCronSchedule("0 0/45 * * * ?"));
 
     q.AddTrigger(t => t.WithIdentity($"{nameof(StorageCleanupJob)}-cron-trigger").ForJob(StorageCleanupJob.Key).StartNow().WithCronSchedule("0 0/45 * * * ?"));
+
+    // Startup job
+    q.AddTrigger(t => t.WithIdentity($"{nameof(TemporaryStorageCleanupJob)}-startup").ForJob(TemporaryStorageCleanupJob.Key).StartNow());
+
+    q.AddTrigger(t => t.WithIdentity($"{nameof(StorageCleanupJob)}-startup").ForJob(StorageCleanupJob.Key).StartNow());
+
 });
 
 // Transcoder

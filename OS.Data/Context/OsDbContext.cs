@@ -9,6 +9,7 @@ public class OsDbContext(DbContextOptions<OsDbContext> options) : DbContext(opti
     public DbSet<Artist> Artists { get; set; }
     public DbSet<Track> Tracks { get; set; }
     public DbSet<Playlist> Playlists { get; set; }
+    public DbSet<StoredEntity> StoredEntities { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

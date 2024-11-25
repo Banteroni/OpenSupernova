@@ -13,4 +13,6 @@ public class Artist : BaseModel
     public ICollection<Album> Albums { get; } = [];
     [JsonIgnore]
     public ICollection<Track> Tracks { get; } = [];
+    [JsonIgnore]
+    public ICollection<StoredEntity> StoredEntities { get; set; } = new List<StoredEntity>();
 }
