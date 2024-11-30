@@ -5,6 +5,7 @@ using OS.Services.Repository;
 using OS.Services.Jobs;
 using OS.Services.Storage;
 using Quartz;
+using Microsoft.AspNetCore.Authorization;
 
 namespace OS.API.Controllers;
 
@@ -94,6 +95,7 @@ public class TrackController(
 
     [HttpPost]
     [DisableRequestSizeLimit]
+    [Authorize(Policy = "Contributor")]
     [RequestFormLimits(ValueLengthLimit = int.MaxValue, MultipartBodyLengthLimit = int.MaxValue)]
     public async Task<IActionResult> Upload([FromForm] string description, [FromForm] DateTime clientDate, IFormFile? file)
     {
