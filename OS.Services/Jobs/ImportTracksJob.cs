@@ -114,7 +114,8 @@ public class ImportTracksJob(
                     artist = (await _repository.GetAsync<Artist>(unknownArtistId))!;
                     if (artist == null)
                     {
-                        throw new Exception("Unknown artist not found in the database, this should not happen");
+                        _logger.LogError("Unknown artist not found in the database, this should not happen");
+                        continue;
                     }
                 }
                 else

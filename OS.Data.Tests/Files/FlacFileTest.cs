@@ -15,9 +15,7 @@ public class FlacFileTest : IDisposable
     [SetUp]
     public void Setup()
     {
-        var CUSTOM_FILE_PATH = "C:\\Users\\lucad\\.oslocalstorage\\test.flac";
-
-        _stream = new FileStream(CUSTOM_FILE_PATH, FileMode.Open, FileAccess.Read);
+        _stream = new FileStream("dummy.flac", FileMode.Open, FileAccess.Read);
 
         _flacFile = new Mock<FlacFile>(_stream);
         _flacFile.CallBase = true;

@@ -44,9 +44,9 @@ public class ImportTracksJobTest
     {
         // Arrange
         var jobData = new JobDataMap();
-        jobData.Add("fileName", "empty.flac");
+        jobData.Add("file", "empty.flac");
         var context = new Mock<IJobExecutionContext>();
-        context.Setup(x => x.JobDetail.JobDataMap).Returns(jobData);
+        context.Setup(x => x.MergedJobDataMap).Returns(jobData);
         _tempStorageService.Setup(x => x.FileExistsAsync("empty.flac")).ReturnsAsync(false);
 
         //Act
@@ -69,7 +69,7 @@ public class ImportTracksJobTest
         // Arrange
         var jobData = new JobDataMap();
         var context = new Mock<IJobExecutionContext>();
-        context.Setup(x => x.JobDetail.JobDataMap).Returns(jobData);
+        context.Setup(x => x.MergedJobDataMap).Returns(jobData);
 
         //Act
         await _job.Execute(context.Object);
@@ -90,9 +90,9 @@ public class ImportTracksJobTest
     {
         // Arrange
         var jobData = new JobDataMap();
-        jobData.Add("fileName", "");
+        jobData.Add("file", "");
         var context = new Mock<IJobExecutionContext>();
-        context.Setup(x => x.JobDetail.JobDataMap).Returns(jobData);
+        context.Setup(x => x.MergedJobDataMap).Returns(jobData);
 
         //Act
         await _job.Execute(context.Object);
@@ -113,9 +113,9 @@ public class ImportTracksJobTest
     {
         // Arrange
         var jobData = new JobDataMap();
-        jobData.Add("fileName", "dummy.zip");
+        jobData.Add("file", "dummy.zip");
         var context = new Mock<IJobExecutionContext>();
-        context.Setup(x => x.JobDetail.JobDataMap).Returns(jobData);
+        context.Setup(x => x.MergedJobDataMap).Returns(jobData);
         _tempStorageService.Setup(x => x.IsFileZip(It.IsAny<string>())).ReturnsAsync(true);
         _tempStorageService.Setup(x => x.ExtractZipAsync(It.IsAny<string>())).ReturnsAsync(new List<string> { "dummy.flac" });
         _tempStorageService.Setup(x => x.FileExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
@@ -134,7 +134,7 @@ public class ImportTracksJobTest
         await _job.Execute(context.Object);
 
         // Assert
-        VerifyMessageWasCalled("added to the database");
+        VerifyMessageWasCalled("added correctly");
 
     }
 
@@ -142,9 +142,9 @@ public class ImportTracksJobTest
     public async Task ImportTracksWithNullStream()
     {
         var jobData = new JobDataMap();
-        jobData.Add("fileName", "sette.flac");
+        jobData.Add("file", "sette.flac");
         var context = new Mock<IJobExecutionContext>();
-        context.Setup(x => x.JobDetail.JobDataMap).Returns(jobData);
+        context.Setup(x => x.MergedJobDataMap).Returns(jobData);
         _tempStorageService.Setup(x => x.IsFileZip(It.IsAny<string>())).ReturnsAsync(false);
         _tempStorageService.Setup(x => x.FileExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
         _tempStorageService.Setup(x => x.GetFileStream(It.IsAny<string>())).ReturnsAsync(new MemoryStream());
@@ -161,9 +161,9 @@ public class ImportTracksJobTest
     {
         // Arrange
         var jobData = new JobDataMap();
-        jobData.Add("fileName", "dummy.flac");
+        jobData.Add("file", "dummy.flac");
         var context = new Mock<IJobExecutionContext>();
-        context.Setup(x => x.JobDetail.JobDataMap).Returns(jobData);
+        context.Setup(x => x.MergedJobDataMap).Returns(jobData);
 
         using var stream = File.OpenRead("dummy.flac");
         using var memoryStream = new MemoryStream();
@@ -182,7 +182,7 @@ public class ImportTracksJobTest
         await _job.Execute(context.Object);
 
         // Assert
-        VerifyMessageWasCalled("added to the database", LogLevel.Information);
+        VerifyMessageWasCalled("added correctly", LogLevel.Information);
     }
 
     [Test]
@@ -190,13 +190,14 @@ public class ImportTracksJobTest
     {
         // Arrange
         var jobData = new JobDataMap();
-        jobData.Add("fileName", "dummy.flac");
+        jobData.Add("file", "dummy.flac");
         var context = new Mock<IJobExecutionContext>();
-        context.Setup(x => x.JobDetail.JobDataMap).Returns(jobData);
+        context.Setup(x => x.MergedJobDataMap).Returns(jobData);
 
         using var stream = File.OpenRead("dummy.flac");
         using var memoryStream = new MemoryStream();
         stream.CopyTo(memoryStream);
+        ManipulateVorbisComment(FlacVorbisCommentField.AlbumArtist, memoryStream, "");
         ManipulateVorbisComment(FlacVorbisCommentField.Artist, memoryStream, "");
         memoryStream.Position = 0;
 
@@ -210,7 +211,7 @@ public class ImportTracksJobTest
         await _job.Execute(context.Object);
 
         // Assert
-        VerifyMessageWasCalled("Failed to process file", LogLevel.Error);
+        VerifyMessageWasCalled("Unknown artist not found in the database", LogLevel.Error);
     }
 
     [Test]
@@ -218,9 +219,9 @@ public class ImportTracksJobTest
     {
         // Arrange
         var jobData = new JobDataMap();
-        jobData.Add("fileName", "dummy.flac");
+        jobData.Add("file", "dummy.flac");
         var context = new Mock<IJobExecutionContext>();
-        context.Setup(x => x.JobDetail.JobDataMap).Returns(jobData);
+        context.Setup(x => x.MergedJobDataMap).Returns(jobData);
 
         using var stream = File.OpenRead("dummy.flac");
         using var memoryStream = new MemoryStream();
