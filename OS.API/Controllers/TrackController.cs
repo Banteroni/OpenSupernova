@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace OS.API.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/tracks")]
 public class TrackController(
     IRepository repository,

@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OS.Data.Models;
 using OS.Data.Repository.Conditions;
@@ -7,6 +8,7 @@ using OS.Services.Repository;
 
 namespace OS.API.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/artists")]
 public class ArtistController(

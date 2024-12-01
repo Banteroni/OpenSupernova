@@ -7,9 +7,10 @@ using OS.Services.Jobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Security.Cryptography;
 using Microsoft.IdentityModel.Tokens;
-using OS.Services.Auth;
 using Microsoft.OpenApi.Models;
 using System.Security.Claims;
+using OS.API.Middleware;
+using System;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -91,7 +92,7 @@ if (builder.Environment.IsDevelopment())
     {
         builder.Services.AddDbContext<OsDbContext>(options =>
         {
-            options.UseSqlServer(builder.Configuration.GetConnectionString("OsDbContext"));
+            options.UseNpgsql(connectionString);
         });
         builder.Services.AddScoped<IRepository, SqlRepository>();
     }
@@ -100,7 +101,7 @@ else
 {
     builder.Services.AddDbContext<OsDbContext>(options =>
     {
-        options.UseSqlServer(builder.Configuration.GetConnectionString("OsDbContext"));
+        options.UseNpgsql(builder.Configuration.GetConnectionString("OsDbContext"));
     });
     builder.Services.AddScoped<IRepository, SqlRepository>();
 }
@@ -112,6 +113,7 @@ builder.Services.AddScheduler();
 var aes = Aes.Create();
 aes.GenerateKey();
 builder.Services.AddSingleton(aes);
+builder.Services.AddScoped<AppendUserMiddleware>();
 
 // Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
@@ -122,14 +124,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
         ValidateAudience = false,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(aes.Key)
+        IssuerSigningKey = builder.Environment.IsDevelopment() ? new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes("my_super_very_long_testing_environment_key")) : new SymmetricSecurityKey(aes.Key)
     };
 });
 
 // Authorization
 builder.Services.AddAuthorization(options =>
       options.AddPolicy("Contributor",
-      policy => policy.RequireClaim(ClaimTypes.Role, ["0", "1"])));
+      policy => policy.RequireClaim(ClaimTypes.Role, ["Contributor", "Admin"])));
 
 var app = builder.Build();
 app.UseAuthentication();
@@ -141,7 +143,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+app.UseMiddleware<AppendUserMiddleware>();
 //app.UseHttpsRedirection();
 
 app.UseAuthorization();

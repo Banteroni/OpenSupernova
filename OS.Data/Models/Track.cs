@@ -14,6 +14,7 @@ public class Track : BaseModel
     // Navigation properties
     public Album? Album { get; set; }
     public ICollection<Artist> Artists { get; set; } = [];
+    [JsonIgnore]
     public ICollection<Playlist> Playlists { get; set; } = [];
     [JsonIgnore]
     public ICollection<StoredEntity> StoredEntities { get; set; } = new List<StoredEntity>();

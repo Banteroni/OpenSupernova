@@ -103,4 +103,14 @@ public class MockRepository : BaseRepository, IRepository
     {
         return Task.CompletedTask;
     }
+
+    public Task<IEnumerable<T>> GetListAsync<T>(IEnumerable<Guid> guids) where T : BaseModel
+    {
+        throw new NotImplementedException();
+    }
+
+    public IQueryable<T> GetQueryable<T>() where T : BaseModel
+    {
+        throw new NotImplementedException();
+    }
 }

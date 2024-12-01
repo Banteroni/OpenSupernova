@@ -34,6 +34,12 @@ public class SqlRepository(OsDbContext context) : BaseRepository, IRepository
         return await GetListAsync<T>(compositeCondition, modelsToInclude);
     }
 
+    public IQueryable<T> GetQueryable<T>() where T : BaseModel
+    {
+        var query = _context.Set<T>().AsQueryable();
+        return query;
+    }
+
     public async Task<IEnumerable<T>> GetListAsync<T>(string[]? modelsToInclude = null) where T : BaseModel
     {
         return await GetListAsync<T>(new CompositeCondition(LogicalSwitch.And), modelsToInclude);
@@ -91,5 +97,10 @@ public class SqlRepository(OsDbContext context) : BaseRepository, IRepository
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<T>> GetListAsync<T>(IEnumerable<Guid> guids) where T : BaseModel
+    {
+        return await _context.Set<T>().Where(x => guids.Contains(x.Id)).ToListAsync();
     }
 }

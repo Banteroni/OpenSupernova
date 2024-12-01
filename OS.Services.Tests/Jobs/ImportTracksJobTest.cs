@@ -127,7 +127,7 @@ public class ImportTracksJobTest
         _repository.Setup(x => x.GetListAsync<Artist>(It.IsAny<SimpleCondition>(), It.IsAny<string[]>())).ReturnsAsync(new List<Artist>([artist]));
         var album = new Album { Id = Guid.NewGuid(), Name = "Album", Artist = artist };
         _repository.Setup(x => x.GetListAsync<Album>(It.IsAny<CompositeCondition>(), It.IsAny<string[]>())).ReturnsAsync(new List<Album>([album]));
-        _repository.Setup(x => x.CreateAsync<Track>(It.IsAny<Track>())).ReturnsAsync(new Track { Id = Guid.NewGuid(), Name = "dummy" });
+        _repository.Setup(x => x.CreateAsync<Track>(It.IsAny<Track>(), It.IsAny<bool>())).ReturnsAsync(new Track { Id = Guid.NewGuid(), Name = "dummy" });
         _repository.Setup(x => x.GetListAsync<Track>(It.IsAny<string[]>())).ReturnsAsync(new List<Track>());
 
         // Act
@@ -175,7 +175,7 @@ public class ImportTracksJobTest
         _tempStorageService.Setup(x => x.IsFileZip(It.IsAny<string>())).ReturnsAsync(false);
         _tempStorageService.Setup(x => x.FileExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
         _tempStorageService.Setup(x => x.GetFileStream(It.IsAny<string>())).ReturnsAsync(memoryStream);
-        _repository.Setup(x => x.CreateAsync<Album>(It.IsAny<Album>())).ReturnsAsync(new Album { Id = Guid.NewGuid(), Name = "Unknown" });
+        _repository.Setup(x => x.CreateAsync<Album>(It.IsAny<Album>(), It.IsAny<bool>())).ReturnsAsync(new Album { Id = Guid.NewGuid(), Name = "Unknown" });
         _repository.Setup(x => x.GetAsync<Artist>(It.IsAny<Guid>(), It.IsAny<string[]?>())).ReturnsAsync(new Artist { Id = Guid.NewGuid(), Name = "Unknown" });
 
         // Act
@@ -204,7 +204,7 @@ public class ImportTracksJobTest
         _tempStorageService.Setup(x => x.IsFileZip(It.IsAny<string>())).ReturnsAsync(false);
         _tempStorageService.Setup(x => x.FileExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
         _tempStorageService.Setup(x => x.GetFileStream(It.IsAny<string>())).ReturnsAsync(memoryStream);
-        _repository.Setup(x => x.CreateAsync<Album>(It.IsAny<Album>())).ReturnsAsync(new Album { Id = Guid.NewGuid(), Name = "Unknown" });
+        _repository.Setup(x => x.CreateAsync<Album>(It.IsAny<Album>(), It.IsAny<bool>())).ReturnsAsync(new Album { Id = Guid.NewGuid(), Name = "Unknown" });
 
         // Act
         await _job.Execute(context.Object);

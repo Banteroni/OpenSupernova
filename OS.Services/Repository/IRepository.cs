@@ -9,6 +9,8 @@ public interface IRepository
 
     public Task<IEnumerable<T>> GetListAsync<T>(SimpleCondition condition, string[]? modelsToInclude = null) where T : BaseModel;
 
+    public Task<IEnumerable<T>> GetListAsync<T>(IEnumerable<Guid> guids) where T : BaseModel;
+
     public Task<IEnumerable<T>> GetListAsync<T>(string[]? modelsToInclude = null) where T : BaseModel;
 
     public Task<T?> GetAsync<T>(Guid id, string[]? entitiesToInclude = null) where T : BaseModel;
@@ -20,4 +22,6 @@ public interface IRepository
     public Task<bool> DeleteAsync<T>(Guid id, bool saveChanges = true) where T : BaseModel;
 
     public Task SaveChangesAsync();
+
+    public IQueryable<T> GetQueryable<T>() where T : BaseModel;
 }

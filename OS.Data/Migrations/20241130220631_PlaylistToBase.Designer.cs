@@ -2,9 +2,9 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using OS.Data.Context;
 
 #nullable disable
@@ -12,8 +12,8 @@ using OS.Data.Context;
 namespace OS.Data.Migrations
 {
     [DbContext(typeof(OsDbContext))]
-    [Migration("20241124105848_addFilesModel")]
-    partial class addFilesModel
+    [Migration("20241130220631_PlaylistToBase")]
+    partial class PlaylistToBase
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -21,17 +21,17 @@ namespace OS.Data.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "9.0.0")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("ArtistTrack", b =>
                 {
                     b.Property<Guid>("ArtistsId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("TracksId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.HasKey("ArtistsId", "TracksId");
 
@@ -44,28 +44,28 @@ namespace OS.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("ArtistId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Genre")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasColumnType("character varying(255)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasColumnType("character varying(255)");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("Year")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -78,22 +78,22 @@ namespace OS.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Bio")
                         .HasMaxLength(3096)
-                        .HasColumnType("nvarchar(3096)");
+                        .HasColumnType("character varying(3096)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasColumnType("character varying(255)");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -113,51 +113,102 @@ namespace OS.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid?>("TrackId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("TrackId");
+
+                    b.HasIndex("UserId");
+
                     b.ToTable("Playlists");
+                });
+
+            modelBuilder.Entity("OS.Data.Models.PlaylistTracks", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("PlaylistId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TrackId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlaylistId");
+
+                    b.HasIndex("TrackId");
+
+                    b.ToTable("PlaylistTracks");
                 });
 
             modelBuilder.Entity("OS.Data.Models.StoredEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<Guid?>("AlbumId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<Guid?>("ArtistId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Mime")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("PlaylistId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid?>("TrackId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<int>("Type")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
                     b.HasIndex("AlbumId");
 
                     b.HasIndex("ArtistId");
+
+                    b.HasIndex("PlaylistId");
 
                     b.HasIndex("TrackId");
 
@@ -168,27 +219,27 @@ namespace OS.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<Guid?>("AlbumId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int?>("Duration")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasColumnType("character varying(255)");
 
                     b.Property<int>("Number")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -197,19 +248,32 @@ namespace OS.Data.Migrations
                     b.ToTable("Tracks");
                 });
 
-            modelBuilder.Entity("PlaylistTrack", b =>
+            modelBuilder.Entity("OS.Data.Models.User", b =>
                 {
-                    b.Property<Guid>("PlaylistsId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
 
-                    b.Property<Guid>("TracksId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
 
-                    b.HasKey("PlaylistsId", "TracksId");
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("text");
 
-                    b.HasIndex("TracksId");
+                    b.Property<int>("Role")
+                        .HasColumnType("integer");
 
-                    b.ToTable("PlaylistTrack");
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("ArtistTrack", b =>
@@ -238,18 +302,56 @@ namespace OS.Data.Migrations
                     b.Navigation("Artist");
                 });
 
-            modelBuilder.Entity("OS.Data.Models.StoredEntity", b =>
+            modelBuilder.Entity("OS.Data.Models.Playlist", b =>
                 {
-                    b.HasOne("OS.Data.Models.Album", "Album")
-                        .WithMany()
-                        .HasForeignKey("AlbumId");
+                    b.HasOne("OS.Data.Models.Track", null)
+                        .WithMany("Playlists")
+                        .HasForeignKey("TrackId");
 
-                    b.HasOne("OS.Data.Models.Artist", "Artist")
-                        .WithMany()
-                        .HasForeignKey("ArtistId");
+                    b.HasOne("OS.Data.Models.User", "User")
+                        .WithMany("Playlists")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("OS.Data.Models.PlaylistTracks", b =>
+                {
+                    b.HasOne("OS.Data.Models.Playlist", "Playlist")
+                        .WithMany("PlaylistTracks")
+                        .HasForeignKey("PlaylistId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("OS.Data.Models.Track", "Track")
                         .WithMany()
+                        .HasForeignKey("TrackId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Playlist");
+
+                    b.Navigation("Track");
+                });
+
+            modelBuilder.Entity("OS.Data.Models.StoredEntity", b =>
+                {
+                    b.HasOne("OS.Data.Models.Album", "Album")
+                        .WithMany("StoredEntities")
+                        .HasForeignKey("AlbumId");
+
+                    b.HasOne("OS.Data.Models.Artist", "Artist")
+                        .WithMany("StoredEntities")
+                        .HasForeignKey("ArtistId");
+
+                    b.HasOne("OS.Data.Models.Playlist", null)
+                        .WithMany("StoredEntities")
+                        .HasForeignKey("PlaylistId");
+
+                    b.HasOne("OS.Data.Models.Track", "Track")
+                        .WithMany("StoredEntities")
                         .HasForeignKey("TrackId");
 
                     b.Navigation("Album");
@@ -268,29 +370,37 @@ namespace OS.Data.Migrations
                     b.Navigation("Album");
                 });
 
-            modelBuilder.Entity("PlaylistTrack", b =>
-                {
-                    b.HasOne("OS.Data.Models.Playlist", null)
-                        .WithMany()
-                        .HasForeignKey("PlaylistsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("OS.Data.Models.Track", null)
-                        .WithMany()
-                        .HasForeignKey("TracksId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("OS.Data.Models.Album", b =>
                 {
+                    b.Navigation("StoredEntities");
+
                     b.Navigation("Tracks");
                 });
 
             modelBuilder.Entity("OS.Data.Models.Artist", b =>
                 {
                     b.Navigation("Albums");
+
+                    b.Navigation("StoredEntities");
+                });
+
+            modelBuilder.Entity("OS.Data.Models.Playlist", b =>
+                {
+                    b.Navigation("PlaylistTracks");
+
+                    b.Navigation("StoredEntities");
+                });
+
+            modelBuilder.Entity("OS.Data.Models.Track", b =>
+                {
+                    b.Navigation("Playlists");
+
+                    b.Navigation("StoredEntities");
+                });
+
+            modelBuilder.Entity("OS.Data.Models.User", b =>
+                {
+                    b.Navigation("Playlists");
                 });
 #pragma warning restore 612, 618
         }

@@ -15,7 +15,7 @@ namespace OS.Data
         public OsDbContext CreateDbContext(string[] args)
         {
             var optionsBuilder = new DbContextOptionsBuilder<OsDbContext>();
-            optionsBuilder.UseSqlServer(Environment.GetEnvironmentVariable("ConnectionStrings__OsDbContext"));
+            optionsBuilder.UseNpgsql(Environment.GetEnvironmentVariable("ConnectionStrings__OsDbContext"));
 
             return new OsDbContext(optionsBuilder.Options);
         }
