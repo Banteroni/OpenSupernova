@@ -74,7 +74,7 @@ public class FlacFileTest : IDisposable
     [Test]
     public void GetAlbumYearWithNullMetadata()
     {
-        _flacFile.Protected().Setup<string>("ExtractVorbisComment", "DATE").Returns((string)null);
+        _flacFile.Protected().Setup<string?>("ExtractVorbisComment", "DATE").Returns((string?)null);
         var year = _flacFile.Object.GetAlbumYear();
         Assert.That(year, Is.Null);
     }
@@ -134,7 +134,7 @@ public class FlacFileTest : IDisposable
     [Test]
     public void RetrieveTrackNumberWithoutVorbisComment()
     {
-        _flacFile.Protected().Setup<string>("ExtractVorbisComment", "TRACKNUMBER").Returns((string)null);
+        _flacFile.Protected().Setup<string?>("ExtractVorbisComment", "TRACKNUMBER").Returns((string?)null);
         var trackNumber = _flacFile.Object.GetTrackNumber();
         Assert.That(trackNumber, Is.Null);
     }

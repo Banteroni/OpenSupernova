@@ -22,11 +22,10 @@ public class ArtistController(
         IEnumerable<Artist> artists;
         if (name != null)
         {
-            var condition = new SimpleCondition("Name", Operator.Equal, name);
-            artists = await _repository.GetListAsync<Artist>(condition);
+            artists = await _repository.FindAllAsync<Artist>(x => x.Name.Contains(name));
         }
 
-        artists = await _repository.GetListAsync<Artist>();
+        artists = await _repository.GetAllAsync<Artist>();
         return Ok(artists);
     }
 

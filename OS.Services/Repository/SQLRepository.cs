@@ -2,36 +2,104 @@
 using OS.Data.Context;
 using OS.Data.Models;
 using OS.Data.Repository.Conditions;
+using System.Linq.Expressions;
 
 namespace OS.Services.Repository;
 
-public class SqlRepository(OsDbContext context) : BaseRepository, IRepository
+public class SqlRepository(OsDbContext context) : IRepository
 {
     private readonly OsDbContext _context = context;
 
-    public async Task<IEnumerable<T>> GetListAsync<T>(CompositeCondition condition, string[]? modelsToInclude = null) where T : BaseModel
+    public async Task<T> CreateAsync<T>(T entity, bool saveChanges = true) where T : BaseModel
     {
-        var query = _context.Set<T>().AsQueryable();
-        var lambda = condition.ToLambda<T>();
-        var populatedQuery = query.Where(lambda);
-        populatedQuery = ApplySkipAndTake(populatedQuery, condition);
-        // include  mdodels
+        await _context.Set<T>().AddAsync(entity);
+        if (saveChanges)
+        {
+            await _context.SaveChangesAsync();
+        }
+        return entity;
+    }
+
+    public async Task<T?> DeleteAsync<T>(Guid id, bool saveChanges = true) where T : BaseModel
+    {
+        var entity = await _context.Set<T>().FindAsync(id);
+        if (entity == null)
+        {
+            return null;
+        }
+        _context.Set<T>().Remove(entity);
+        if (saveChanges)
+        {
+            await _context.SaveChangesAsync();
+        }
+        return entity;
+    }
+
+    public async Task<IEnumerable<T>> DeleteWhereAsync<T>(Expression<Func<T, bool>> predicate, bool saveChanges = true) where T : BaseModel
+    {
+        var entities = GetQueryable<T>().Where(predicate);
+        if (entities == null)
+        {
+            return [];
+        }
+        _context.Set<T>().RemoveRange(entities);
+        if (saveChanges)
+        {
+            await _context.SaveChangesAsync();
+        }
+        return entities;
+    }
+
+    public async Task<IEnumerable<T>> FindAllAsync<T>(Expression<Func<T, bool>> predicate, string[]? modelsToInclude = null) where T : BaseModel
+    {
+        var query = GetQueryable<T>().Where(predicate);
         if (modelsToInclude != null)
         {
             foreach (var model in modelsToInclude)
             {
-                populatedQuery = populatedQuery.Include(model);
+                query = query.Include(model);
             }
         }
-        var queryList = await populatedQuery.Where(lambda).ToListAsync();
-        return queryList;
+        return await query.ToListAsync();
     }
 
-    public async Task<IEnumerable<T>> GetListAsync<T>(SimpleCondition condition, string[]? modelsToInclude = null) where T : BaseModel
+    public async Task<T?> FindFirstAsync<T>(Expression<Func<T, bool>> predicate, string[]? modelsToInclude = null) where T : BaseModel
     {
-        var compositeCondition = new CompositeCondition(LogicalSwitch.And);
-        compositeCondition.AddCondition(condition);
-        return await GetListAsync<T>(compositeCondition, modelsToInclude);
+        var query = GetQueryable<T>().Where(predicate);
+        if (modelsToInclude != null)
+        {
+            foreach (var model in modelsToInclude)
+            {
+                query = query.Include(model);
+            }
+        }
+        return await query.FirstOrDefaultAsync();
+    }
+
+    public async Task<IEnumerable<T>> GetAllAsync<T>(string[]? modelsToInclude = null) where T : BaseModel
+    {
+        var query = GetQueryable<T>();
+        if (modelsToInclude != null)
+        {
+            foreach (var model in modelsToInclude)
+            {
+                query = query.Include(model);
+            }
+        }
+        return await query.ToListAsync();
+    }
+
+    public async Task<T?> GetAsync<T>(Guid id, string[]? modelsToInclude = null) where T : BaseModel
+    {
+         var query = GetQueryable<T>().Where(x => x.Id == id);
+        if (modelsToInclude != null)
+        {
+            foreach (var model in modelsToInclude)
+            {
+                query = query.Include(model);
+            }
+        }
+        return await query.FirstOrDefaultAsync();
     }
 
     public IQueryable<T> GetQueryable<T>() where T : BaseModel
@@ -40,67 +108,19 @@ public class SqlRepository(OsDbContext context) : BaseRepository, IRepository
         return query;
     }
 
-    public async Task<IEnumerable<T>> GetListAsync<T>(string[]? modelsToInclude = null) where T : BaseModel
+    public async Task<bool> SaveChangesAsync()
     {
-        return await GetListAsync<T>(new CompositeCondition(LogicalSwitch.And), modelsToInclude);
+        var response = await _context.SaveChangesAsync();
+        return response > 0;
     }
 
-    public async Task<T?> GetAsync<T>(Guid id, string[]? entitiesToInclude = null) where T : BaseModel
+    public async Task<T> UpdateAsync<T>(T entity, bool saveChanges = true) where T : BaseModel
     {
-        var query = _context.Set<T>().AsQueryable();
-        if (entitiesToInclude != null)
-        {
-            query = entitiesToInclude.Aggregate(query, (current, entity) => current.Include(entity));
-        }
-
-        var response = await query.FirstOrDefaultAsync(x => x.Id == id);
-        return response;
-    }
-
-    public async Task<T> CreateAsync<T>(T entity, bool saveNow = true) where T : BaseModel
-    {
-        var response = await _context.Set<T>().AddAsync(entity);
-        if (saveNow)
+        _context.Set<T>().Update(entity);
+        if (saveChanges)
         {
             await _context.SaveChangesAsync();
         }
-        return response.Entity;
-    }
-
-    public async Task<T> UpdateAsync<T>(T entity, Guid id, bool saveNow = true) where T : BaseModel
-    {
-        var response = _context.Set<T>().Update(entity);
-        if (saveNow)
-        {
-            await _context.SaveChangesAsync();
-        }
-        return response.Entity;
-    }
-
-    public async Task<bool> DeleteAsync<T>(Guid id, bool saveNow = true) where T : BaseModel
-    {
-        var entity = await _context.Set<T>().FindAsync(id);
-        if (entity == null)
-        {
-            return false;
-        }
-
-        _context.Set<T>().Remove(entity);
-        if (saveNow)
-        {
-            await _context.SaveChangesAsync();
-        }
-        await _context.SaveChangesAsync();
-        return true;
-    }
-
-    public async Task SaveChangesAsync()
-    {
-        await _context.SaveChangesAsync();
-    }
-
-    public async Task<IEnumerable<T>> GetListAsync<T>(IEnumerable<Guid> guids) where T : BaseModel
-    {
-        return await _context.Set<T>().Where(x => guids.Contains(x.Id)).ToListAsync();
+        return entity;
     }
 }

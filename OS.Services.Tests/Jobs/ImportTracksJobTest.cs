@@ -11,31 +11,29 @@ using OS.Services.Storage;
 using Quartz;
 using System.IO;
 using System.IO.Pipes;
+using System.Linq.Expressions;
 using System.Text;
 using static OS.Data.Files.FlacFile;
-using MockRepository = OS.Services.Repository.MockRepository;
 
 namespace OS.Services.Tests.Jobs;
 
 public class ImportTracksJobTest
 {
-    private Mock<ILogger<ImportTracksJob>> _jobLogger;
-    private Mock<IRepository> _repository;
-    private Mock<IStorageService> _storageService;
-    private Mock<ITempStorageService> _tempStorageService;
-    private Mock<ITranscoder> _transcoder;
-    private ImportTracksJob _job;
+    private readonly Mock<ILogger<ImportTracksJob>> _jobLogger;
+    private readonly Mock<IRepository> _repository;
+    private readonly Mock<IStorageService> _storageService;
+    private readonly Mock<ITempStorageService> _tempStorageService;
+    private readonly Mock<ITranscoder> _transcoder;
+    private readonly ImportTracksJob _job;
 
 
-    [SetUp]
-    public async Task Setup()
+    public ImportTracksJobTest()
     {
         _jobLogger = new Mock<ILogger<ImportTracksJob>>();
         _repository = new Mock<IRepository>();
         _storageService = new Mock<IStorageService>();
         _tempStorageService = new Mock<ITempStorageService>();
         _transcoder = new Mock<ITranscoder>();
-
         _job = new ImportTracksJob(_jobLogger.Object, _storageService.Object, _tempStorageService.Object, _transcoder.Object, _repository.Object);
     }
 
@@ -124,11 +122,11 @@ public class ImportTracksJobTest
         _tempStorageService.Setup(x => x.GetFileStream(It.IsAny<string>())).ReturnsAsync(stream);
         _transcoder.Setup(x => x.TranscodeAsync(It.IsAny<string>(), It.IsAny<string>())).Returns(Task.CompletedTask);
         var artist = new Artist { Id = Guid.NewGuid(), Name = "Artist" };
-        _repository.Setup(x => x.GetListAsync<Artist>(It.IsAny<SimpleCondition>(), It.IsAny<string[]>())).ReturnsAsync(new List<Artist>([artist]));
+        _repository.Setup(x => x.FindAllAsync<Artist>(It.IsAny<Expression<Func<Artist, bool>>>(), It.IsAny<string[]>())).ReturnsAsync(new List<Artist> { artist });
         var album = new Album { Id = Guid.NewGuid(), Name = "Album", Artist = artist };
-        _repository.Setup(x => x.GetListAsync<Album>(It.IsAny<CompositeCondition>(), It.IsAny<string[]>())).ReturnsAsync(new List<Album>([album]));
+        _repository.Setup(x => x.FindAllAsync<Album>(It.IsAny<Expression<Func<Album, bool>>>(), It.IsAny<string[]>())).ReturnsAsync(new List<Album> { album });
         _repository.Setup(x => x.CreateAsync<Track>(It.IsAny<Track>(), It.IsAny<bool>())).ReturnsAsync(new Track { Id = Guid.NewGuid(), Name = "dummy" });
-        _repository.Setup(x => x.GetListAsync<Track>(It.IsAny<string[]>())).ReturnsAsync(new List<Track>());
+        _repository.Setup(x => x.GetAllAsync<Track>(It.IsAny<string[]>())).ReturnsAsync(new List<Track>());
 
         // Act
         await _job.Execute(context.Object);

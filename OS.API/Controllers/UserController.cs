@@ -32,7 +32,7 @@ namespace OS.API.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginBody payload)
         {
-            var users = await _repository.GetListAsync<User>(new SimpleCondition(nameof(OS.Data.Models.User.Username), Operator.Equal, payload.Username));
+            var users = await _repository.FindAllAsync<User>(x => x.Username == payload.Username);
             var user = users.FirstOrDefault();
             if (user == null)
             {

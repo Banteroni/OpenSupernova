@@ -28,7 +28,7 @@ public class TrackController(
     public async Task<IActionResult> GetTracks([FromQuery][Optional] Guid albumId,
         [FromQuery][Optional] string? title)
     {
-        var tracks = await _repository.GetListAsync<Track>();
+        var tracks = await _repository.GetAllAsync<Track>();
         if (albumId != Guid.Empty)
         {
             tracks = tracks.Where(t => t.NavigationAlbumId == albumId);

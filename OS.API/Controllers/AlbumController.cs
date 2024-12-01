@@ -1,6 +1,8 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Linq.Expressions;
+using System.Runtime.InteropServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using OS.API.Utilities;
 using OS.Data.Models;
 using OS.Data.Repository.Conditions;
@@ -19,28 +21,19 @@ public class AlbumController(IRepository repository, IStorageService storageServ
     [HttpGet]
     public async Task<IActionResult> GetAlbums([FromQuery][Optional] string? title, [FromQuery][Optional] int? year, [FromQuery][Optional] string? artist)
     {
-        var compositeCondition = new CompositeCondition(LogicalSwitch.Or);
-        if (title != null)
-        {
-            compositeCondition.AddCondition(new SimpleCondition("Name", Operator.Contains, title));
-        }
-        if (year != null)
-        {
-            compositeCondition.AddCondition(new SimpleCondition("Year", Operator.Equal, (int)year));
-        }
-        if (artist != null)
-        {
-            compositeCondition.AddCondition(new SimpleCondition("Name", Operator.Contains, artist, nameof(Artist)));
-        }
+        Expression<Func<Album, bool>> filter = x =>
+            (title == null || x.Name.Contains(title, StringComparison.OrdinalIgnoreCase)) &&
+            (year == null || x.Year == year) &&
+            (artist == null || x.Artist.Name.Contains(artist, StringComparison.OrdinalIgnoreCase));
 
-        var albums = await _repository.GetListAsync<Album>(compositeCondition, [nameof(Artist)]);
+        var albums = await _repository.FindAllAsync(filter, [nameof(Album.Artist)]);
         return Ok(albums);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetAlbum([FromRoute] Guid id)
     {
-        var album = await _repository.GetAsync<Album>(id, [nameof(Artist)]);
+        var album = await _repository.GetAsync<Album>(id);
         if (album == null)
         {
             return NotFound();
@@ -51,7 +44,7 @@ public class AlbumController(IRepository repository, IStorageService storageServ
     [HttpGet("{id}/tracks")]
     public async Task<IActionResult> GetAlbumTracks([FromRoute] Guid id)
     {
-        var album = await _repository.GetAsync<Album>(id, new[] { nameof(Album.Tracks) });
+        var album = await _repository.FindFirstAsync<Album>(x => x.Id == id, [nameof(Album.Tracks)]);
         if (album == null)
         {
             return NotFound();

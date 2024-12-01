@@ -1,8 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using OS.Data.Files;
 using OS.Data.Models;
-using OS.Data.Repository.ConditionPresets;
-using OS.Data.Repository.Conditions;
 using OS.Services.Codec;
 using OS.Services.Repository;
 using OS.Services.Storage;
@@ -21,7 +19,7 @@ public class ImportTracksJob(
     private readonly IStorageService _storageService = storageService;
     private readonly ITempStorageService _tempStorageService = tempStorageService;
     private readonly ITranscoder _transcoder = transcoderService;
-    private readonly IRepository _repository = repository; 
+    private readonly IRepository _repository = repository;
 
     public static readonly JobKey Key = new JobKey(nameof(ImportTracksJob), "processing");
 
@@ -101,17 +99,11 @@ public class ImportTracksJob(
 
                 // Database operations
                 Artist artist;
+                Album? album;
+
                 if (albumArtist == null)
                 {
-                    var unknownArtist = ArtistConditionPresets.UnknownArtist();
-                    var isUnknownArtistParsed = Guid.TryParse(unknownArtist.Value.ToString(), out var unknownArtistId);
-                    if (!isUnknownArtistParsed)
-                    {
-                        _logger.LogError("Failed to parse unknown artist ID, this should not happen");
-                        continue;
-                    }
-
-                    artist = (await _repository.GetAsync<Artist>(unknownArtistId))!;
+                    artist = (await _repository.GetAsync<Artist>(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
                     if (artist == null)
                     {
                         _logger.LogError("Unknown artist not found in the database, this should not happen");
@@ -120,9 +112,9 @@ public class ImportTracksJob(
                 }
                 else
                 {
-                    var condition = ArtistConditionPresets.ArtistNameSearch(albumArtist);
-                    var artistsInDb = (await _repository.GetListAsync<Artist>(condition)).ToList();
-                    if (artistsInDb.Count == 0)
+
+                    var artistsInDb = await _repository.FindAllAsync<Artist>(x => x.Name == albumArtist);
+                    if (artistsInDb.Count() == 0)
                     {
                         var newArtistInDb = await _repository.CreateAsync(new Artist()
                         {
@@ -136,13 +128,12 @@ public class ImportTracksJob(
                     }
                 }
 
-                Album? album;
                 if (albumName == null) continue;
-                var albumSearch = AlbumConditionPresets.AlbumSearch(albumName, albumArtist, albumYear);
-                var albumsInDb = (await _repository.GetListAsync<Album>(albumSearch)).ToList();
-                if (albumsInDb.Count == 0)
-                {
 
+                var albumsInDb = await _repository.FindAllAsync<Album>(x => x.Name == albumName && x.Artist.Name == albumArtist && x.Year == albumYear);
+
+                if (albumsInDb.Count() == 0)
+                {
                     album = await _repository.CreateAsync(new Album()
                     {
                         Name = albumName,
@@ -175,16 +166,8 @@ public class ImportTracksJob(
                 }
 
                 // Check if track already exists
-                var compositeTrackCondition = new CompositeCondition(LogicalSwitch.And);
-                compositeTrackCondition.AddCondition(new SimpleCondition("Name", Operator.Contains, title));
-                if (number != null)
-                {
-                    compositeTrackCondition.AddCondition(new SimpleCondition("Number", Operator.Equal, (int)number));
-                }
-                compositeTrackCondition.AddCondition(new SimpleCondition("Id", Operator.Equal,
-                    album.Id, nameof(Album)));
-                var tracksInDb = (await _repository.GetListAsync<Track>(compositeTrackCondition)).ToList();
-                if (tracksInDb.Count > 0)
+                var tracksInDb = await _repository.FindAllAsync<Track>(x => x.Name == title && x.Number == number && x.Album != null && x.Album.Id == album.Id);
+                if (tracksInDb.Count() > 0)
                 {
                     _logger.LogWarning($"Track {title} already exists in the database, skipping");
                     continue;
@@ -198,9 +181,8 @@ public class ImportTracksJob(
                 {
                     foreach (var trackArtist in trackArtists)
                     {
-                        var artistSearch = ArtistConditionPresets.ArtistNameSearch(trackArtist);
-                        var artistsInDb = (await _repository.GetListAsync<Artist>(artistSearch)).ToList();
-                        if (artistsInDb.Count == 0)
+                        var artistsInDb = await _repository.FindAllAsync<Artist>(x => x.Name == trackArtist);
+                        if (artistsInDb.Count() == 0)
                         {
                             var newArtist = await _repository.CreateAsync(new Artist()
                             {
@@ -227,16 +209,16 @@ public class ImportTracksJob(
                 storedStreamFile.Track = track;
                 if (Environment.GetEnvironmentVariable("StoreOrigin") == "1")
                 {
-                    var storedLosslessFile = new StoredEntity()
+                    var storedOrigin = new StoredEntity()
                     {
                         Id = Guid.NewGuid(),
                         Type = StoredEntityType.Origin,
                         Mime = "audio/ogg",
                         Track = track
                     };
-                    await _repository.CreateAsync(storedLosslessFile, false);
-                    await _storageService.SaveFileAsync(fileStream, storedLosslessFile.Id.ToString());
-                    savedStorageFiles.Add(storedLosslessFile.Id.ToString());
+                    await _repository.CreateAsync(storedOrigin, false);
+                    await _storageService.SaveFileAsync(fileStream, storedOrigin.Id.ToString());
+                    savedStorageFiles.Add(storedOrigin.Id.ToString());
                 }
 
                 await _repository.CreateAsync(storedStreamFile, false);

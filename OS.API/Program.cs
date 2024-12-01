@@ -83,28 +83,11 @@ if (builder.Environment.IsDevelopment())
                     .AllowAnyHeader();
             });
     });
-    var connectionString = builder.Configuration.GetConnectionString("OsDbContext");
-    if (connectionString == null)
-    {
-        builder.Services.AddScoped<IRepository, MockRepository>();
-    }
-    else
-    {
-        builder.Services.AddDbContext<OsDbContext>(options =>
-        {
-            options.UseNpgsql(connectionString);
-        });
-        builder.Services.AddScoped<IRepository, SqlRepository>();
-    }
 }
-else
-{
-    builder.Services.AddDbContext<OsDbContext>(options =>
-    {
-        options.UseNpgsql(builder.Configuration.GetConnectionString("OsDbContext"));
-    });
-    builder.Services.AddScoped<IRepository, SqlRepository>();
-}
+
+var connectionString = builder.Configuration.GetConnectionString("OsDbContext");
+builder.Services.AddDbContext<OsDbContext>(options => options.UseNpgsql(connectionString));
+builder.Services.AddScoped<IRepository, SqlRepository>();
 
 // Scheduler
 builder.Services.AddScheduler();

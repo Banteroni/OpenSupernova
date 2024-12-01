@@ -27,7 +27,7 @@ namespace OS.Services.Jobs
                 return;
             }
             var files = await _storageService.ListAllFilesAsync();
-            var entities = await _repository.GetListAsync<StoredEntity>();
+            var entities = await _repository.GetAllAsync<StoredEntity>();
 
             foreach (var file in files)
             {

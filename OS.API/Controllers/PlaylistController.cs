@@ -25,7 +25,11 @@ namespace OS.API.Controllers
         public async Task<IActionResult> GetPlaylists()
         {
             var user = HttpContext.Items["User"] as OS.Data.Models.User;
-            var playlists = await _repository.GetListAsync<Playlist>(new SimpleCondition(nameof(OS.Data.Models.User.Id), Operator.Equal, user.Id, nameof(User)));
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+            var playlists = await _repository.FindAllAsync<Playlist>(x => x.User.Id == user.Id);
             return Ok(playlists);
         }
 
@@ -33,15 +37,16 @@ namespace OS.API.Controllers
         public async Task<IActionResult> GetPlaylist([FromRoute] Guid id)
         {
             var user = HttpContext.Items["User"] as OS.Data.Models.User;
-            var compositeCondition = new CompositeCondition(LogicalSwitch.And);
-            compositeCondition.AddCondition(new SimpleCondition(nameof(Playlist.Id), Operator.Equal, id));
-            compositeCondition.AddCondition(new SimpleCondition(nameof(OS.Data.Models.User.Id), Operator.Equal, user.Id, nameof(OS.Data.Models.User)));
-            var playlists = await _repository.GetListAsync<Playlist>(compositeCondition);
-            if (playlists.Count() > 0)
+            if (user == null)
             {
-                return Ok(playlists.First());
+                return Unauthorized();
             }
-            return NotFound();
+            var playlists = await _repository.FindFirstAsync<Playlist>(x => x.Id == id && x.User.Id == user.Id);
+            if (playlists == null)
+            {
+                return NotFound();
+            }
+            return Ok(playlists);
         }
 
         [HttpGet("{id}/tracks")]
@@ -52,7 +57,7 @@ namespace OS.API.Controllers
             {
                 return NotFound();
             }
-            var playlistTracks = await _repository.GetListAsync<PlaylistTrack>(new SimpleCondition(nameof(Playlist.Id), Operator.Equal, id, nameof(Playlist)), [nameof(PlaylistTrack.Track)]);
+            var playlistTracks = await _repository.FindAllAsync<PlaylistTrack>(x => x.Playlist.Id == id, [nameof(PlaylistTrack.Track)]);
             if (playlistTracks.Count() > 0)
             {
                 return Ok(playlistTracks.OrderBy(x => x.Number).Select(x => x.Track));
@@ -64,6 +69,10 @@ namespace OS.API.Controllers
         public async Task<IActionResult> CreatePlaylist([FromBody] CreatePlaylistBody body)
         {
             var user = HttpContext.Items["User"] as OS.Data.Models.User;
+            if (user == null)
+            {
+                return Unauthorized();
+            }
 
             var playlist = new Playlist
             {
@@ -73,7 +82,7 @@ namespace OS.API.Controllers
             };
             if (body.Tracks != null)
             {
-                var tracks = await _repository.GetListAsync<Track>(body.Tracks);
+                var tracks = await _repository.FindAllAsync<Track>(x => body.Tracks.Contains(x.Id));
                 playlist.PlaylistTracks = tracks.Select((t, i) => new PlaylistTrack { Track = t, Number = i + 1 }).ToList();
             }
             await _repository.CreateAsync(playlist);
@@ -88,11 +97,9 @@ namespace OS.API.Controllers
             {
                 return NotFound();
             }
-            var compositeCondition = new CompositeCondition(LogicalSwitch.And);
-            compositeCondition.AddCondition(new SimpleCondition(nameof(Playlist.Id), Operator.Equal, id, nameof(Playlist)));
-            var playlistTracks = await _repository.GetListAsync<PlaylistTrack>(compositeCondition, [nameof(PlaylistTrack.Track)]);
+            var playlistTracks = await _repository.FindAllAsync<PlaylistTrack>(x => x.Playlist.Id == id, [nameof(PlaylistTrack.Track)]);
 
-            if (playlistTracks != null && playlistTracks.Any(x => x.Track.Id == trackId))
+            if (playlistTracks.Any(x => x.Track.Id == trackId))
             {
                 return BadRequest(ResponseUtilities.BuildErrorBody("The track is already present in the playlist"));
             }
@@ -119,15 +126,7 @@ namespace OS.API.Controllers
             {
                 return NotFound();
             }
-            var compositeCondition = new CompositeCondition(LogicalSwitch.And);
-            compositeCondition.AddCondition(new SimpleCondition(nameof(Playlist.Id), Operator.Equal, id, nameof(Playlist)));
-            compositeCondition.AddCondition(new SimpleCondition(nameof(Track.Id), Operator.Equal, trackId, nameof(Track)));
-            var playlistTrack = (await _repository.GetListAsync<PlaylistTrack>(compositeCondition)).FirstOrDefault();
-            if (playlistTrack == null)
-            {
-                return NotFound();
-            }
-            await _repository.DeleteAsync<PlaylistTrack>(playlistTrack.Id);
+            var deletedTrack = await _repository.DeleteWhereAsync<PlaylistTrack>(x => x.Playlist.Id == id && x.Track.Id == trackId);
             return Ok();
         }
 
@@ -146,9 +145,12 @@ namespace OS.API.Controllers
         private async Task<Playlist?> GetOwningPlaylist(Guid id)
         {
             var user = HttpContext.Items["User"] as OS.Data.Models.User;
-            var condition = new SimpleCondition(nameof(OS.Data.Models.User.Id), Operator.Equal, user.Id, nameof(OS.Data.Models.User));
-            var playlists = await _repository.GetListAsync<Playlist>(condition);
-            return playlists.FirstOrDefault(x => x.Id == id);
+            if (user == null)
+            {
+                return null;
+            }
+            var playlist = await _repository.FindFirstAsync<Playlist>(x => x.User.Id == user.Id && x.Id == id);
+            return playlist;
         }
     }
 }
