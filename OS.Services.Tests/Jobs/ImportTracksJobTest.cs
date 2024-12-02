@@ -1,16 +1,11 @@
 ﻿using Microsoft.Extensions.Logging;
 using Moq;
-using OS.Data.Files;
 using OS.Data.Models;
-using OS.Data.Options;
-using OS.Data.Repository.Conditions;
 using OS.Services.Codec;
 using OS.Services.Jobs;
 using OS.Services.Repository;
 using OS.Services.Storage;
 using Quartz;
-using System.IO;
-using System.IO.Pipes;
 using System.Linq.Expressions;
 using System.Text;
 using static OS.Data.Files.FlacFile;
@@ -35,6 +30,16 @@ public class ImportTracksJobTest
         _tempStorageService = new Mock<ITempStorageService>();
         _transcoder = new Mock<ITranscoder>();
         _job = new ImportTracksJob(_jobLogger.Object, _storageService.Object, _tempStorageService.Object, _transcoder.Object, _repository.Object);
+    }
+
+    [SetUp]
+    public void Setup()
+    {
+        _jobLogger.Reset();
+        _repository.Reset();
+        _storageService.Reset();
+        _tempStorageService.Reset();
+        _transcoder.Reset();
     }
 
     [Test]

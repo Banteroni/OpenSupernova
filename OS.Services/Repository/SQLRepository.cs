@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OS.Data.Context;
 using OS.Data.Models;
-using OS.Data.Repository.Conditions;
 using System.Linq.Expressions;
 
 namespace OS.Services.Repository;
@@ -37,8 +36,8 @@ public class SqlRepository(OsDbContext context) : IRepository
 
     public async Task<IEnumerable<T>> DeleteWhereAsync<T>(Expression<Func<T, bool>> predicate, bool saveChanges = true) where T : BaseModel
     {
-        var entities = GetQueryable<T>().Where(predicate);
-        if (entities == null)
+        var entities = await GetQueryable<T>().Where(predicate).ToListAsync();
+        if (entities.Count == 0)
         {
             return [];
         }
@@ -91,7 +90,7 @@ public class SqlRepository(OsDbContext context) : IRepository
 
     public async Task<T?> GetAsync<T>(Guid id, string[]? modelsToInclude = null) where T : BaseModel
     {
-         var query = GetQueryable<T>().Where(x => x.Id == id);
+        var query = GetQueryable<T>().Where(x => x.Id == id);
         if (modelsToInclude != null)
         {
             foreach (var model in modelsToInclude)

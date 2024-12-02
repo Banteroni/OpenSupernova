@@ -113,8 +113,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 
 // Authorization
 builder.Services.AddAuthorization(options =>
-      options.AddPolicy("Contributor",
-      policy => policy.RequireClaim(ClaimTypes.Role, ["Contributor", "Admin"])));
+{
+    options.AddPolicy("Contributor",
+      policy => policy.RequireClaim(ClaimTypes.Role, ["Contributor", "Admin"]));
+    options.AddPolicy("Admin",
+        policy => policy.RequireClaim(ClaimTypes.Role, "Admin"));
+});
 
 var app = builder.Build();
 app.UseAuthentication();
