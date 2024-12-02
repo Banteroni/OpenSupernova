@@ -107,7 +107,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
         ValidateAudience = false,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        IssuerSigningKey = builder.Environment.IsDevelopment() ? new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes("my_super_very_long_testing_environment_key")) : new SymmetricSecurityKey(aes.Key)
+        IssuerSigningKey = new SymmetricSecurityKey(aes.Key)
     };
 });
 

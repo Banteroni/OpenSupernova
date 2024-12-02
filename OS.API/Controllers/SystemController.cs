@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OS.Data.Models;
+using OS.Data.Schemas;
 using OS.Services.Repository;
 using System.Security.Cryptography;
 using System.Text;
@@ -22,7 +23,7 @@ namespace OS.API.Controllers
         [AllowAnonymous]
         [HttpPost]
         [Route("init")]
-        public async Task<IActionResult> InitSystem([FromBody] string password)
+        public async Task<IActionResult> InitSystem([FromBody] SystemInitBody body)
         {
             var users = await _repository.FindAllAsync<User>(x => x.Role == Role.Admin);
             if (users.Any())
@@ -31,7 +32,7 @@ namespace OS.API.Controllers
             }
             // to sha256
             using var sha256 = SHA256.Create();
-            var hashedPassword = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            var hashedPassword = sha256.ComputeHash(Encoding.UTF8.GetBytes(body.Password));
             var hashedPasswordString = Encoding.UTF8.GetString(hashedPassword);
             var user = new User
             {

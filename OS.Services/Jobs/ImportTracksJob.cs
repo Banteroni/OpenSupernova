@@ -92,7 +92,6 @@ public class ImportTracksJob(
                 var albumYear = trackFile.GetAlbumYear();
                 var albumGenre = trackFile.GetAlbumGenre();
                 var albumArtist = trackFile.GetAlbumArtist();
-                await fileStream.DisposeAsync();
                 if (title == null)
                 {
                     _logger.LogError($"Failed to get title from file {file}, skipping");
