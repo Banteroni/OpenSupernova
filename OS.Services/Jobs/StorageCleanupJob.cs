@@ -10,18 +10,19 @@ using System.Threading.Tasks;
 
 namespace OS.Services.Jobs
 {
-    public class StorageCleanupJob(IStorageService storageService, IRepository repository, IScheduler scheduler) : IJob
+    public class StorageCleanupJob(IStorageService storageService, IRepository repository, ISchedulerFactory schedulerFactory) : IJob
     {
 
         private readonly IStorageService _storageService = storageService;
         private readonly IRepository _repository = repository;
-        private readonly IScheduler _scheduler = scheduler;
+        private readonly ISchedulerFactory _schedulerFactory = schedulerFactory;
 
         public static readonly JobKey Key = new JobKey(nameof(StorageCleanupJob), "maintenance");
 
         public async Task Execute(IJobExecutionContext context)
         {
-            var isImporting = await _scheduler.CheckExists(ImportTracksJob.Key);
+            var scheduler = await _schedulerFactory.GetScheduler();
+            var isImporting = await scheduler.CheckExists(ImportTracksJob.Key);
             if (isImporting)
             {
                 return;

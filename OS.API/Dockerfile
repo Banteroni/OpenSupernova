@@ -9,6 +9,9 @@ EXPOSE 8081
 # Install FFmpeg
 RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
 
+# Make a /app/data directory to store files, make sure it is writable by the app user
+RUN chown $APP_UID /app
+
 # Switch back to non-root user
 USER $APP_UID
 
