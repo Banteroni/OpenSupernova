@@ -63,12 +63,6 @@ public class ImportTracksJob(
             try
             {
                 var trackGuid = Guid.NewGuid();
-                var fileStream = await _tempStorageService.GetFileStream(file);
-                if (fileStream == null || fileStream.Length == 0)
-                {
-                    _logger.LogError($"Failed to get file {file}, skipping");
-                    continue;
-                }
 
                 var storedStreamFile = new StoredEntity()
                 {
@@ -82,7 +76,14 @@ public class ImportTracksJob(
                 savedStorageFiles.Add(storedStreamFile.Id.ToString());
 
                 // Metadata
+                using var fileStream = await _tempStorageService.GetFileStream(file);
+                if (fileStream == null || fileStream.Length == 0)
+                {
+                    _logger.LogError($"Failed to get file {file}, skipping");
+                    continue;
+                }
                 var trackFile = new FlacFile(fileStream);
+
                 var title = trackFile.GetTrackTitle();
                 var number = trackFile.GetTrackNumber();
                 var trackArtists = trackFile.GetTrackArtists();
@@ -91,6 +92,7 @@ public class ImportTracksJob(
                 var albumYear = trackFile.GetAlbumYear();
                 var albumGenre = trackFile.GetAlbumGenre();
                 var albumArtist = trackFile.GetAlbumArtist();
+                await fileStream.DisposeAsync();
                 if (title == null)
                 {
                     _logger.LogError($"Failed to get title from file {file}, skipping");
@@ -222,7 +224,6 @@ public class ImportTracksJob(
                 }
 
                 await _repository.CreateAsync(storedStreamFile, false);
-
                 await _repository.SaveChangesAsync();
             }
             catch (Exception e)

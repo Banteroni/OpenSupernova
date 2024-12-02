@@ -47,10 +47,9 @@ public class LocalStorageService : IStorageService, ITempStorageService
         }
     }
 
-    public Task<Stream> GetFileStream(string objectName)
+    public Task<Stream>? GetFileStream(string objectName)
     {
         var fullPath = Path.Combine(_path, objectName);
-
         try
         {
             var stream = File.OpenRead(fullPath) as Stream;
@@ -66,7 +65,6 @@ public class LocalStorageService : IStorageService, ITempStorageService
     public Task<bool> DeleteFileAsync(string objectName)
     {
         var fullPath = Path.Combine(_path, objectName);
-
         try
         {
             File.Delete(fullPath);

@@ -70,7 +70,7 @@ public class FfmpegTranscoder(
             {
                 if (args.Data != null)
                 {
-                    _logger.LogError(args.Data); // Log errors
+                    _logger.LogInformation(args.Data); // Log errors
                 }
             };
 
@@ -90,13 +90,16 @@ public class FfmpegTranscoder(
             // get byte array from file
             using (var fileStream = await _tempStorageService.GetFileStream(tempOutputLocation))
             {
+                if (fileStream == null)
+                {
+                    throw new Exception($"Failed to store file {outputObject}");
+                }
                 var isFileStored = await _storageService.SaveFileAsync(fileStream, outputObject);
                 if (!isFileStored)
                     throw new Exception($"Failed to store file {outputObject}");
             }
 
             await _tempStorageService.DeleteFileAsync(tempOutputLocation);
-            await _tempStorageService.DeleteFileAsync(inputObject);
             _logger.LogInformation($"Transcoding complete");
         }
         catch (Exception ex)

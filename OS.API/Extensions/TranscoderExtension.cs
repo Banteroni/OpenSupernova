@@ -14,11 +14,21 @@ namespace OS.API.Extensions
                 throw new Exception("Configuration is required");
             }
 
-            TranscodeSettings transcodeSettings = new();
-            configuration.GetSection("TranscodeSettings").Bind(transcodeSettings);
+            var settings = configuration.GetSection("TranscodeSettings").Get<TranscodeSettings>();
+
+            if (settings == null)
+            {
+                settings = new TranscodeSettings()
+                {
+                    BitrateKbps = 128,
+                    SampleRate = 48000,
+                    Channels = 2,
+                    CompressionLevel = 10
+                };
+            }
 
             services.AddSingleton<ITranscoder, FfmpegTranscoder>(x =>
-                ActivatorUtilities.CreateInstance<FfmpegTranscoder>(x, transcodeSettings));
+            ActivatorUtilities.CreateInstance<FfmpegTranscoder>(x, settings));
 
             return services;
         }
