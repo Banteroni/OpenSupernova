@@ -100,7 +100,7 @@ namespace OS.API.Controllers
 
             if (playlistTracks.Any(x => x.Track.Id == trackId))
             {
-                return BadRequest(ResponseUtilities.BuildErrorBody("The track is already present in the playlist"));
+                return BadRequest(ResponseUtilities.BuildError("The track is already present in the playlist"));
             }
             var track = await _repository.GetAsync<Track>(trackId);
             if (track == null)

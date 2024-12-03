@@ -18,4 +18,6 @@ public class Track : BaseModel
     public ICollection<Playlist> Playlists { get; set; } = [];
     [JsonIgnore]
     public ICollection<StoredEntity> StoredEntities { get; set; } = new List<StoredEntity>();
+    [JsonIgnore]
+    public ICollection<User> StarredBy { get; set; } = [];
 }

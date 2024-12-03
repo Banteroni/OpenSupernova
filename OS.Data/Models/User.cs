@@ -21,5 +21,7 @@ namespace OS.Data.Models
         public Role Role { get; set; }
         [JsonIgnore]
         public ICollection<Playlist> Playlists { get; } = [];
+        [JsonIgnore]
+        public ICollection<Track> Stars { get; } = [];
     }
 }

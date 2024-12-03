@@ -56,12 +56,12 @@ public class AlbumController(IRepository repository, IStorageService storageServ
         var album = await _repository.GetAsync<Album>(id, [nameof(Album.StoredEntities)]);
         if (album == null)
         {
-            return NotFound(ResponseUtilities.BuildErrorBody("Album not found"));
+            return NotFound(ResponseUtilities.BuildError("Album not found"));
         }
         var cover = album.StoredEntities.FirstOrDefault(x => x.Type == StoredEntityType.AlbumCover);
         if (cover == null)
         {
-            return NotFound(ResponseUtilities.BuildErrorBody("Album cover not found"));
+            return NotFound(ResponseUtilities.BuildError("Album cover not found"));
         }
         var stream = await _storageService.GetFileStream(cover.Id.ToString());
         if (stream == null)

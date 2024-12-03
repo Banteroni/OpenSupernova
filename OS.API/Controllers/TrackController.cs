@@ -6,6 +6,7 @@ using OS.Services.Jobs;
 using OS.Services.Storage;
 using Quartz;
 using Microsoft.AspNetCore.Authorization;
+using OS.API.Utilities;
 
 namespace OS.API.Controllers;
 
@@ -28,7 +29,7 @@ public class TrackController(
     public async Task<IActionResult> GetTracks([FromQuery][Optional] Guid albumId,
         [FromQuery][Optional] string? title)
     {
-        var tracks = await _repository.GetAllAsync<Track>();
+        var tracks = await _repository.FindAllAsync<Track>(t => (albumId == Guid.Empty || (t.Album != null && t.Album.Id == albumId)) && (title == null || t.Name.Contains(title)), [nameof(Album), nameof(Track.Artists)]);
         if (albumId != Guid.Empty)
         {
             tracks = tracks.Where(t => t.NavigationAlbumId == albumId);
@@ -45,7 +46,7 @@ public class TrackController(
     [HttpGet("{id}")]
     public async Task<IActionResult> GetTrack([FromRoute] Guid id)
     {
-        var track = await _repository.GetAsync<Track>(id);
+        var track = await _repository.GetAsync<Track>(id, [nameof(Album), nameof(Track.Artists)]);
         if (track == null)
         {
             return NotFound();
@@ -123,5 +124,42 @@ public class TrackController(
             return BadRequest(e.Message);
         }
 
+    }
+
+    [HttpPut("{id}/star")]
+    public async Task<IActionResult> StarTrack([FromRoute] Guid id)
+    {
+        var track = await _repository.GetAsync<Track>(id, [nameof(Track.StarredBy)]);
+        if (track == null)
+        {
+            return NotFound();
+        }
+        if (track.StarredBy.Any(x => x.Id == (HttpContext.Items["User"] as User)?.Id))
+        {
+            return Ok(ResponseUtilities.BuildWarning("The track is already starred by the user"));
+        }
+        track.StarredBy.Add(HttpContext.Items["User"] as User);
+        await _repository.UpdateAsync(track);
+        return Ok();
+    }
+
+    [HttpDelete("${id}/star")]
+    public async Task<IActionResult> UnstarTrack([FromRoute] Guid id)
+    {
+        var track = await _repository.GetAsync<Track>(id, [nameof(Track.StarredBy)]);
+        if (track == null)
+        {
+            return NotFound();
+        }
+        var user = HttpContext.Items["User"] as User;
+        var starredBy = track.StarredBy.FirstOrDefault(x => x.Id == user?.Id);
+        if (starredBy == null)
+        {
+            return Ok(ResponseUtilities.BuildWarning("The song wasn't starred by the user"));
+        }
+
+        track.StarredBy.Add(HttpContext.Items["User"] as User);
+        await _repository.UpdateAsync(track);
+        return Ok();
     }
 }
