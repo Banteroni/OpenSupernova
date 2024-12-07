@@ -7,6 +7,9 @@ using OS.Services.Storage;
 using Quartz;
 using Microsoft.AspNetCore.Authorization;
 using OS.API.Utilities;
+using OS.Data.Dtos;
+using OS.Services.Mappers;
+using System.Security.Claims;
 
 namespace OS.API.Controllers;
 
@@ -17,30 +20,32 @@ public class TrackController(
     IRepository repository,
     ITempStorageService tempStorageService,
     IStorageService storageService,
-    IScheduler scheduler, ILogger<TrackController> logger) : Controller
+    IScheduler scheduler, ILogger<TrackController> logger, IDtoMapper mapper) : Controller
 {
     private readonly IRepository _repository = repository;
     private readonly ITempStorageService _tempStorageService = tempStorageService;
     private readonly IStorageService _storageService = storageService;
     private readonly IScheduler _scheduler = scheduler;
+    private readonly IDtoMapper _mapper = mapper;
     private readonly ILogger<TrackController> _logger = logger;
 
     [HttpGet]
-    public async Task<IActionResult> GetTracks([FromQuery][Optional] Guid albumId,
-        [FromQuery][Optional] string? title)
+    public async Task<IActionResult> GetTracks([FromQuery][Optional] Guid? albumId,
+        [FromQuery][Optional] string? title, [FromQuery][Optional] Guid? artistId, [FromQuery][Optional] Guid? playlistId)
     {
-        var tracks = await _repository.FindAllAsync<Track>(t => (albumId == Guid.Empty || (t.Album != null && t.Album.Id == albumId)) && (title == null || t.Name.Contains(title)), [nameof(Album), nameof(Track.Artists)]);
-        if (albumId != Guid.Empty)
-        {
-            tracks = tracks.Where(t => t.NavigationAlbumId == albumId);
-        }
+        var userId = RequestUtilities.GetUserId(HttpContext);
 
-        if (title != null)
-        {
-            tracks = tracks.Where(t => t.Name.Contains(title));
-        }
+        var tracks = await _repository.FindAllAsync<Track>(t =>
+        (albumId == Guid.Empty || (t.Album != null && t.Album.Id == albumId)) &&
+        (title == null || t.Name.Contains(title) &&
+        (artistId == null || (t.Album != null && t.Album.Artist.Id == artistId)) &&
+        (playlistId != null || t.Playlists.FirstOrDefault(x => x.Id == playlistId && x.User.Id == userId) != null)),
+        [nameof(Album), nameof(Track.Artists), nameof(Track.StarredBy)]);
 
-        return Ok(tracks);
+
+        var trackDtos = ToTrackDtoWithFavorites(tracks, userId);
+
+        return Ok(trackDtos);
     }
 
     [HttpGet("{id}")]
@@ -126,40 +131,66 @@ public class TrackController(
 
     }
 
+    [HttpGet("star")]
+    public async Task<IActionResult> GetStarredTracks()
+    {
+        var userId = RequestUtilities.GetUserId(HttpContext);
+        var tracks = (await _repository.FindAllAsync<Track, TracksDto>(t => t.StarredBy.Any(x => x.Id == userId), [nameof(Album), nameof(Track.Artists)])).Select(x =>
+        {
+            x.IsStarred = true;
+            return x;
+        });
+        return Ok(tracks);
+    }
+
     [HttpPut("{id}/star")]
     public async Task<IActionResult> StarTrack([FromRoute] Guid id)
     {
+        var userId = RequestUtilities.GetUserId(HttpContext);
+        var user = await _repository.GetAsync<User>(userId);
         var track = await _repository.GetAsync<Track>(id, [nameof(Track.StarredBy)]);
         if (track == null)
         {
             return NotFound();
         }
-        if (track.StarredBy.Any(x => x.Id == (HttpContext.Items["User"] as User)?.Id))
+        if (track.StarredBy.Any(x => x.Id == userId))
         {
             return Ok(ResponseUtilities.BuildWarning("The track is already starred by the user"));
         }
-        track.StarredBy.Add(HttpContext.Items["User"] as User);
+        track.StarredBy.Add(user!);
         await _repository.UpdateAsync(track);
         return Ok();
     }
 
-    [HttpDelete("${id}/star")]
+    [HttpDelete("{id}/star")]
     public async Task<IActionResult> UnstarTrack([FromRoute] Guid id)
     {
+        var userId = RequestUtilities.GetUserId(HttpContext);
         var track = await _repository.GetAsync<Track>(id, [nameof(Track.StarredBy)]);
         if (track == null)
         {
             return NotFound();
         }
-        var user = HttpContext.Items["User"] as User;
-        var starredBy = track.StarredBy.FirstOrDefault(x => x.Id == user?.Id);
+        var starredBy = track.StarredBy.FirstOrDefault(x => x.Id == userId);
         if (starredBy == null)
         {
             return Ok(ResponseUtilities.BuildWarning("The song wasn't starred by the user"));
         }
 
-        track.StarredBy.Add(HttpContext.Items["User"] as User);
+        track.StarredBy.Remove(starredBy);
         await _repository.UpdateAsync(track);
         return Ok();
+    }
+
+    public List<TracksDto> ToTrackDtoWithFavorites(IEnumerable<Track> tracks, Guid userId)
+    {
+        var tracksDto = new List<TracksDto>();
+        foreach (var track in tracks)
+        {
+            var trackDto = _mapper.Map<TracksDto>(track);
+            trackDto.IsStarred = track.StarredBy.Any(x => x.Id == userId);
+            tracksDto.Add(trackDto);
+        }
+        return tracksDto.ToList();
     }
 }

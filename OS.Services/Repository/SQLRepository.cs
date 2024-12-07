@@ -1,15 +1,16 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OS.Data.Context;
 using OS.Data.Models;
+using OS.Services.Mappers;
 using System.Linq.Expressions;
 
 namespace OS.Services.Repository;
 
-public class SqlRepository(OsDbContext context) : IRepository
+public class SqlRepository(OsDbContext context, IDtoMapper mapper) : BaseRepository(mapper)
 {
     private readonly OsDbContext _context = context;
 
-    public async Task<T> CreateAsync<T>(T entity, bool saveChanges = true) where T : BaseModel
+    public override async Task<T> CreateAsync<T>(T entity, bool saveChanges = true)
     {
         await _context.Set<T>().AddAsync(entity);
         if (saveChanges)
@@ -19,7 +20,7 @@ public class SqlRepository(OsDbContext context) : IRepository
         return entity;
     }
 
-    public async Task<T?> DeleteAsync<T>(Guid id, bool saveChanges = true) where T : BaseModel
+    public override async Task<T?> DeleteAsync<T>(Guid id, bool saveChanges = true) where T : class
     {
         var entity = await _context.Set<T>().FindAsync(id);
         if (entity == null)
@@ -34,7 +35,7 @@ public class SqlRepository(OsDbContext context) : IRepository
         return entity;
     }
 
-    public async Task<IEnumerable<T>> DeleteWhereAsync<T>(Expression<Func<T, bool>> predicate, bool saveChanges = true) where T : BaseModel
+    public override async Task<IEnumerable<T>> DeleteWhereAsync<T>(Expression<Func<T, bool>> predicate, bool saveChanges = true) where T : class
     {
         var entities = await GetQueryable<T>().Where(predicate).ToListAsync();
         if (entities.Count == 0)
@@ -49,7 +50,7 @@ public class SqlRepository(OsDbContext context) : IRepository
         return entities;
     }
 
-    public async Task<IEnumerable<T>> FindAllAsync<T>(Expression<Func<T, bool>> predicate, string[]? modelsToInclude = null) where T : BaseModel
+    public override async Task<IEnumerable<T>> FindAllAsync<T>(Expression<Func<T, bool>> predicate, string[]? modelsToInclude = null) where T : class
     {
         var query = GetQueryable<T>().Where(predicate);
         if (modelsToInclude != null)
@@ -62,7 +63,7 @@ public class SqlRepository(OsDbContext context) : IRepository
         return await query.ToListAsync();
     }
 
-    public async Task<T?> FindFirstAsync<T>(Expression<Func<T, bool>> predicate, string[]? modelsToInclude = null) where T : BaseModel
+    public override async Task<T?> FindFirstAsync<T>(Expression<Func<T, bool>> predicate, string[]? modelsToInclude = null) where T : class
     {
         var query = GetQueryable<T>().Where(predicate);
         if (modelsToInclude != null)
@@ -75,7 +76,7 @@ public class SqlRepository(OsDbContext context) : IRepository
         return await query.FirstOrDefaultAsync();
     }
 
-    public async Task<IEnumerable<T>> GetAllAsync<T>(string[]? modelsToInclude = null) where T : BaseModel
+    public override async Task<IEnumerable<T>> GetAllAsync<T>(string[]? modelsToInclude = null) where T : class
     {
         var query = GetQueryable<T>();
         if (modelsToInclude != null)
@@ -88,7 +89,7 @@ public class SqlRepository(OsDbContext context) : IRepository
         return await query.ToListAsync();
     }
 
-    public async Task<T?> GetAsync<T>(Guid id, string[]? modelsToInclude = null) where T : BaseModel
+    public override async Task<T?> GetAsync<T>(Guid id, string[]? modelsToInclude = null) where T : class
     {
         var query = GetQueryable<T>().Where(x => x.Id == id);
         if (modelsToInclude != null)
@@ -101,19 +102,19 @@ public class SqlRepository(OsDbContext context) : IRepository
         return await query.FirstOrDefaultAsync();
     }
 
-    public IQueryable<T> GetQueryable<T>() where T : BaseModel
+    public override IQueryable<T> GetQueryable<T>() where T : class
     {
         var query = _context.Set<T>().AsQueryable();
         return query;
     }
 
-    public async Task<bool> SaveChangesAsync()
+    public override async Task<bool> SaveChangesAsync()
     {
         var response = await _context.SaveChangesAsync();
         return response > 0;
     }
 
-    public async Task<T> UpdateAsync<T>(T entity, bool saveChanges = true) where T : BaseModel
+    public override async Task<T> UpdateAsync<T>(T entity, bool saveChanges = true) where T : class
     {
         _context.Set<T>().Update(entity);
         if (saveChanges)

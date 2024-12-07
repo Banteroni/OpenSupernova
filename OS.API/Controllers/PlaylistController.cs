@@ -23,24 +23,16 @@ namespace OS.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetPlaylists()
         {
-            var user = HttpContext.Items["User"] as OS.Data.Models.User;
-            if (user == null)
-            {
-                return Unauthorized();
-            }
-            var playlists = await _repository.FindAllAsync<Playlist>(x => x.User.Id == user.Id);
+            var userId = RequestUtilities.GetUserId(HttpContext);
+            var playlists = await _repository.FindAllAsync<Playlist>(x => x.User.Id == userId);
             return Ok(playlists);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetPlaylist([FromRoute] Guid id)
         {
-            var user = HttpContext.Items["User"] as OS.Data.Models.User;
-            if (user == null)
-            {
-                return Unauthorized();
-            }
-            var playlists = await _repository.FindFirstAsync<Playlist>(x => x.Id == id && x.User.Id == user.Id);
+            var userId = RequestUtilities.GetUserId(HttpContext);
+            var playlists = await _repository.FindFirstAsync<Playlist>(x => x.Id == id && x.User.Id == userId);
             if (playlists == null)
             {
                 return NotFound();
@@ -48,35 +40,16 @@ namespace OS.API.Controllers
             return Ok(playlists);
         }
 
-        [HttpGet("{id}/tracks")]
-        public async Task<IActionResult> GetPlaylistTracks([FromRoute] Guid id)
-        {
-            var owningPlaylist = await GetOwningPlaylist(id);
-            if (owningPlaylist == null)
-            {
-                return NotFound();
-            }
-            var playlistTracks = await _repository.FindAllAsync<PlaylistTrack>(x => x.Playlist.Id == id, [nameof(PlaylistTrack.Track)]);
-            if (playlistTracks.Count() > 0)
-            {
-                return Ok(playlistTracks.OrderBy(x => x.Number).Select(x => x.Track));
-            }
-            return Ok(new List<Track>());
-        }
-
         [HttpPost]
         public async Task<IActionResult> CreatePlaylist([FromBody] CreatePlaylistBody body)
         {
-            var user = HttpContext.Items["User"] as OS.Data.Models.User;
-            if (user == null)
-            {
-                return Unauthorized();
-            }
+            var userId = RequestUtilities.GetUserId(HttpContext);
+            var user = await _repository.GetAsync<User>(userId);
 
             var playlist = new Playlist
             {
                 Name = body.Name,
-                User = user
+                User = user!
 
             };
             if (body.Tracks != null)
@@ -143,12 +116,8 @@ namespace OS.API.Controllers
 
         private async Task<Playlist?> GetOwningPlaylist(Guid id)
         {
-            var user = HttpContext.Items["User"] as OS.Data.Models.User;
-            if (user == null)
-            {
-                return null;
-            }
-            var playlist = await _repository.FindFirstAsync<Playlist>(x => x.User.Id == user.Id && x.Id == id);
+            var userId = RequestUtilities.GetUserId(HttpContext);
+            var playlist = await _repository.FindFirstAsync<Playlist>(x => x.User.Id == userId && x.Id == id);
             return playlist;
         }
     }

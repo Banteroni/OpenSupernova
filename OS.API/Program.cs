@@ -9,8 +9,7 @@ using System.Security.Cryptography;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Security.Claims;
-using OS.API.Middleware;
-using System;
+using OS.Services.Mappers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,6 +43,8 @@ builder.Services.AddLogging(x =>
     x.AddConsole();
 });
 
+builder.Services.AddScoped<IDtoMapper, DtoMapper>();
+
 // Storage
 builder.Services.AddStorage();
 
@@ -54,16 +55,16 @@ builder.Services.AddQuartz(q =>
 
     q.AddJob<TemporaryStorageCleanupJob>(j => j.WithIdentity(TemporaryStorageCleanupJob.Key));
 
-    q.AddJob<StorageCleanupJob>(j => j.WithIdentity(StorageCleanupJob.Key));
+    q.AddJob<DatabaseCleanup>(j => j.WithIdentity(DatabaseCleanup.Key));
 
     q.AddTrigger(t => t.WithIdentity($"{nameof(TemporaryStorageCleanupJob)}-cron-trigger").ForJob(TemporaryStorageCleanupJob.Key).StartNow().WithCronSchedule("0 0/45 * * * ?"));
 
-    q.AddTrigger(t => t.WithIdentity($"{nameof(StorageCleanupJob)}-cron-trigger").ForJob(StorageCleanupJob.Key).StartNow().WithCronSchedule("0 0/45 * * * ?"));
+    q.AddTrigger(t => t.WithIdentity($"{nameof(DatabaseCleanup)}-cron-trigger").ForJob(DatabaseCleanup.Key).StartNow().WithCronSchedule("0 0/45 * * * ?"));
 
     // Startup job
     q.AddTrigger(t => t.WithIdentity($"{nameof(TemporaryStorageCleanupJob)}-startup").ForJob(TemporaryStorageCleanupJob.Key).StartNow());
 
-    q.AddTrigger(t => t.WithIdentity($"{nameof(StorageCleanupJob)}-startup").ForJob(StorageCleanupJob.Key).StartNow());
+    q.AddTrigger(t => t.WithIdentity($"{nameof(DatabaseCleanup)}-startup").ForJob(DatabaseCleanup.Key).StartNow());
 
 });
 
@@ -96,20 +97,19 @@ builder.Services.AddScheduler();
 var aes = Aes.Create();
 aes.GenerateKey();
 builder.Services.AddSingleton(aes);
-builder.Services.AddScoped<AppendUserMiddleware>();
 
 // Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = false,
-        ValidateAudience = false,
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(aes.Key)
-    };
-});
+        };
+    });
 
 // Authorization
 builder.Services.AddAuthorization(options =>
@@ -130,7 +130,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UseMiddleware<AppendUserMiddleware>();
+
 //app.UseHttpsRedirection();
 
 app.UseAuthorization();

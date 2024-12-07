@@ -1,9 +1,9 @@
 ﻿using System.Runtime.InteropServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OS.Data.Dtos;
 using OS.Data.Models;
 using OS.Services.Repository;
-
 
 namespace OS.API.Controllers;
 
@@ -18,49 +18,27 @@ public class ArtistController(
     [HttpGet]
     public async Task<IActionResult> GetArtists([FromQuery] [Optional] string? name)
     {
-        IEnumerable<Artist> artists;
+        IEnumerable<ArtistsDto> artists;
         if (name != null)
         {
-            artists = await _repository.FindAllAsync<Artist>(x => x.Name.Contains(name));
+            artists = await _repository.FindAllAsync<Artist, ArtistsDto>(x => x.Name.Contains(name));
         }
-
-        artists = await _repository.GetAllAsync<Artist>();
+        else
+        {
+            artists = await _repository.GetAllAsync<Artist, ArtistsDto>();
+        }
         return Ok(artists);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetArtist([FromRoute] Guid id)
     {
-        var artist = await _repository.GetAsync<Artist>(id);
+        var artist = await _repository.GetAsync<Artist, ArtistDto>(id);
         if (artist == null)
         {
             return NotFound();
         }
 
         return Ok(artist);
-    }
-
-    [HttpGet("{id}/albums")]
-    public async Task<IActionResult> GetArtistAlbums([FromRoute] Guid id)
-    {
-        var artist = await _repository.GetAsync<Artist>(id);
-        if (artist == null)
-        {
-            return NotFound();
-        }
-
-        return Ok(artist.Albums);
-    }
-
-    [HttpGet("{id}/tracks")]
-    public async Task<IActionResult> GetArtistTracks([FromRoute] Guid id)
-    {
-        var artist = await _repository.GetAsync<Artist>(id);
-        if (artist == null)
-        {
-            return NotFound();
-        }
-
-        return Ok(artist.Tracks);
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using OS.Data.Context;
 using OS.Data.Models;
+using OS.Services.Mappers;
 using OS.Services.Repository;
 using System;
 using System.Collections.Generic;
@@ -15,6 +16,7 @@ namespace OS.Services.Tests.Repository
 {
     public class SqlRepositoryTest
     {
+        private readonly IDtoMapper _mapper = new DtoMapper();
         [Test]
         public async Task CreateAsyncTest()
         {
@@ -31,7 +33,7 @@ namespace OS.Services.Tests.Repository
                 using (var context = new OsDbContext(options))
                 {
                     await context.Database.EnsureCreatedAsync();
-                    var repository = new SqlRepository(context);
+                    var repository = new SqlRepository(context, _mapper);
                     var entity = new Artist()
                     {
                         Name = "Test Artist"
@@ -60,7 +62,7 @@ namespace OS.Services.Tests.Repository
                 using (var context = new OsDbContext(options))
                 {
                     await context.Database.EnsureCreatedAsync();
-                    var repository = new SqlRepository(context);
+                    var repository = new SqlRepository(context, _mapper);
                     var entity = new Artist()
                     {
                         Name = "Test Artist"
@@ -89,7 +91,7 @@ namespace OS.Services.Tests.Repository
                 using (var context = new OsDbContext(options))
                 {
                     await context.Database.EnsureCreatedAsync();
-                    var repository = new SqlRepository(context);
+                    var repository = new SqlRepository(context, _mapper);
                     var entity = new Artist()
                     {
                         Name = "Test Artist"
@@ -116,7 +118,7 @@ namespace OS.Services.Tests.Repository
                 using (var context = new OsDbContext(options))
                 {
                     await context.Database.EnsureCreatedAsync();
-                    var repository = new SqlRepository(context);
+                    var repository = new SqlRepository(context, _mapper);
                     var entity = new Artist()
                     {
                         Name = "Test Artist"
@@ -147,7 +149,7 @@ namespace OS.Services.Tests.Repository
                 using (var context = new OsDbContext(options))
                 {
                     await context.Database.EnsureCreatedAsync();
-                    var repository = new SqlRepository(context);
+                    var repository = new SqlRepository(context, _mapper);
                     var entity = new Artist()
                     {
                         Name = "Test Artist"
@@ -176,7 +178,7 @@ namespace OS.Services.Tests.Repository
                 using (var context = new OsDbContext(options))
                 {
                     await context.Database.EnsureCreatedAsync();
-                    var repository = new SqlRepository(context);
+                    var repository = new SqlRepository(context, _mapper);
                     var entity = new Artist()
                     {
                         Name = "Test Artist"
@@ -207,7 +209,7 @@ namespace OS.Services.Tests.Repository
                 using (var context = new OsDbContext(options))
                 {
                     await context.Database.EnsureCreatedAsync();
-                    var repository = new SqlRepository(context);
+                    var repository = new SqlRepository(context, _mapper);
                     var entity = new Artist()
                     {
                         Name = "Test Artist"
@@ -236,7 +238,7 @@ namespace OS.Services.Tests.Repository
                 using (var context = new OsDbContext(options))
                 {
                     await context.Database.EnsureCreatedAsync();
-                    var repository = new SqlRepository(context);
+                    var repository = new SqlRepository(context, _mapper);
                     var entity = new Artist()
                     {
                         Name = "Test Artist"
@@ -267,7 +269,7 @@ namespace OS.Services.Tests.Repository
                 using (var context = new OsDbContext(options))
                 {
                     await context.Database.EnsureCreatedAsync();
-                    var repository = new SqlRepository(context);
+                    var repository = new SqlRepository(context, _mapper);
                     var entity = new Artist()
                     {
                         Name = "Test Artist"
@@ -296,7 +298,7 @@ namespace OS.Services.Tests.Repository
                 using (var context = new OsDbContext(options))
                 {
                     await context.Database.EnsureCreatedAsync();
-                    var repository = new SqlRepository(context);
+                    var repository = new SqlRepository(context, _mapper);
                     var entity = new Artist()
                     {
                         Name = "Test Artist"
@@ -325,7 +327,7 @@ namespace OS.Services.Tests.Repository
                 using (var context = new OsDbContext(options))
                 {
                     await context.Database.EnsureCreatedAsync();
-                    var repository = new SqlRepository(context);
+                    var repository = new SqlRepository(context, _mapper);
                     var entity = new Artist()
                     {
                         Name = "Test Artist"

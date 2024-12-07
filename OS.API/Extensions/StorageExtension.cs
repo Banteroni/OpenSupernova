@@ -13,11 +13,7 @@ public static class StorageExtension
 
     public static IServiceCollection AddStorage(this IServiceCollection services)
     {
-        var configuration = services.BuildServiceProvider().GetService<IConfiguration>();
-        if (configuration == null)
-        {
-            throw new Exception("Configuration is required");
-        }
+        var configuration = services.BuildServiceProvider().GetService<IConfiguration>()!;
 
         Dictionary<string, BaseStorageSettings?> storageSettings = new()
         {

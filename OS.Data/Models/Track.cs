@@ -9,8 +9,6 @@ public class Track : BaseModel
     [MaxLength(255)] public required string Name { get; set; }
     public int? Duration { get; set; }
     public int Number { get; set; }
-    [NotMapped][JsonIgnore] public Guid? NavigationAlbumId { get; set; }
-
     // Navigation properties
     public Album? Album { get; set; }
     public ICollection<Artist> Artists { get; set; } = [];

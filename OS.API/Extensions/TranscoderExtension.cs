@@ -9,12 +9,8 @@ namespace OS.API.Extensions
         public static IServiceCollection AddTranscoder(this IServiceCollection services)
         {
             var configuration = services.BuildServiceProvider().GetService<IConfiguration>();
-            if (configuration == null)
-            {
-                throw new Exception("Configuration is required");
-            }
 
-            var settings = configuration.GetSection("TranscodeSettings").Get<TranscodeSettings>();
+            var settings = configuration!.GetSection("TranscodeSettings").Get<TranscodeSettings>();
 
             if (settings == null)
             {
