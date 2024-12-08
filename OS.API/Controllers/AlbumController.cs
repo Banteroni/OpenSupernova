@@ -20,7 +20,9 @@ public class AlbumController(IRepository repository, IStorageService storageServ
     private readonly IStorageService _storageService = storageService;
     private readonly IRepository _repository = repository;
     private readonly IDtoMapper _mapper = mapper;
+
     [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<AlbumsDto>), 200)]
     public async Task<IActionResult> GetAlbums([FromQuery][Optional] string? title, [FromQuery][Optional] int? year, [FromQuery][Optional] Guid? artistId)
     {
         Expression<Func<Album, bool>> filter = x =>
@@ -33,6 +35,8 @@ public class AlbumController(IRepository repository, IStorageService storageServ
     }
 
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(AlbumDto), 200)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> GetAlbum([FromRoute] Guid id)
     {
         var album = await _repository.GetAsync<Album, AlbumDto>(id);
@@ -43,6 +47,7 @@ public class AlbumController(IRepository repository, IStorageService storageServ
         return Ok(album);
     }
     [HttpGet("{id}/cover")]
+    [ProducesResponseType(typeof(File), 200)]
     public async Task<IActionResult> GetAlbumCover([FromRoute] Guid id)
     {
         var album = await _repository.GetAsync<Album>(id, [nameof(Album.StoredEntities)]);

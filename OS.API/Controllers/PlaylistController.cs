@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using OS.Data.Schemas;
 using OS.API.Utilities;
+using OS.Services.Mappers;
+using OS.Data.Dtos;
 
 namespace OS.API.Controllers
 {
@@ -14,13 +16,16 @@ namespace OS.API.Controllers
     public class PlaylistController : Controller
     {
         private IRepository _repository;
+        private IDtoMapper _mapper;
 
-        public PlaylistController(IRepository repository)
+        public PlaylistController(IRepository repository, IDtoMapper mapper)
         {
+            _mapper = mapper;
             _repository = repository;
         }
 
         [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<Playlist>), 200)]
         public async Task<IActionResult> GetPlaylists()
         {
             var userId = RequestUtilities.GetUserId(HttpContext);
@@ -29,6 +34,8 @@ namespace OS.API.Controllers
         }
 
         [HttpGet("{id}")]
+        [ProducesResponseType(typeof(Playlist), 200)]
+        [ProducesResponseType(404)]
         public async Task<IActionResult> GetPlaylist([FromRoute] Guid id)
         {
             var userId = RequestUtilities.GetUserId(HttpContext);
@@ -41,6 +48,7 @@ namespace OS.API.Controllers
         }
 
         [HttpPost]
+        [ProducesResponseType(typeof(Playlist), 200)]
         public async Task<IActionResult> CreatePlaylist([FromBody] CreatePlaylistBody body)
         {
             var userId = RequestUtilities.GetUserId(HttpContext);
@@ -62,6 +70,9 @@ namespace OS.API.Controllers
         }
 
         [HttpPut("{id}/{trackId}")]
+        [ProducesResponseType(typeof(TracksDto), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(400)]
         public async Task<IActionResult> AddToPlaylist(Guid id, Guid trackId)
         {
             var owningPlaylist = await GetOwningPlaylist(id);
@@ -87,10 +98,13 @@ namespace OS.API.Controllers
                 Number = playlistTracks.Count() == 0 ? 1 : playlistTracks.Max(x => x.Number) + 1
             };
             await _repository.CreateAsync(playlistTrack);
-            return Ok(track);
+            var trackDto = _mapper.Map<TracksDto>(track);
+            return Ok(trackDto);
         }
 
         [HttpDelete("{id}/{trackId}")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(404)]
         public async Task<IActionResult> RemoveFromPlaylist(Guid id, Guid trackId)
         {
             var owningPlaylist = await GetOwningPlaylist(id);
@@ -103,6 +117,8 @@ namespace OS.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(404)]
         public async Task<IActionResult> DeletePlaylist(Guid id)
         {
             var owningPlaylist = await GetOwningPlaylist(id);

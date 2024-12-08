@@ -23,6 +23,8 @@ namespace OS.API.Controllers
         [AllowAnonymous]
         [HttpPost]
         [Route("init")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(400)]
         public async Task<IActionResult> InitSystem([FromBody] SystemInitBody body)
         {
             var users = await _repository.FindAllAsync<User>(x => x.Role == Role.Admin);

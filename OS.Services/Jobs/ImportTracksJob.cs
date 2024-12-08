@@ -91,7 +91,7 @@ public class ImportTracksJob(
                 var duration = trackFile.GetDuration();
                 var albumYear = trackFile.GetAlbumYear();
                 var albumGenre = trackFile.GetAlbumGenre();
-                var albumArtist = trackFile.GetAlbumArtist();
+                var albumArtistName = trackFile.GetAlbumArtist();
                 if (title == null)
                 {
                     _logger.LogError($"Failed to get title from file {file}, skipping");
@@ -99,13 +99,13 @@ public class ImportTracksJob(
                 }
 
                 // Database operations
-                Artist artist;
+                Artist albumArtist;
                 Album? album;
 
-                if (albumArtist == null)
+                if (albumArtistName == null)
                 {
-                    artist = (await _repository.GetAsync<Artist>(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
-                    if (artist == null)
+                    albumArtist = (await _repository.GetAsync<Artist>(Guid.Parse("00000000-0000-0000-0000-000000000001")))!;
+                    if (albumArtist == null)
                     {
                         _logger.LogError("Unknown artist not found in the database, this should not happen");
                         continue;
@@ -114,24 +114,24 @@ public class ImportTracksJob(
                 else
                 {
 
-                    var artistsInDb = await _repository.FindAllAsync<Artist>(x => x.Name == albumArtist);
+                    var artistsInDb = await _repository.FindAllAsync<Artist>(x => x.Name == albumArtistName);
                     if (artistsInDb.Count() == 0)
                     {
                         var newArtistInDb = await _repository.CreateAsync(new Artist()
                         {
-                            Name = albumArtist
+                            Name = albumArtistName
                         }, false);
-                        artist = newArtistInDb!;
+                        albumArtist = newArtistInDb!;
                     }
                     else
                     {
-                        artist = artistsInDb.FirstOrDefault()!;
+                        albumArtist = artistsInDb.FirstOrDefault()!;
                     }
                 }
 
                 if (albumName == null) continue;
 
-                var albumsInDb = await _repository.FindAllAsync<Album>(x => x.Name == albumName && x.Artist.Name == albumArtist && x.Year == albumYear);
+                var albumsInDb = await _repository.FindAllAsync<Album>(x => x.Name == albumName && x.Artist.Name == albumArtistName && x.Year == albumYear);
 
                 if (albumsInDb.Count() == 0)
                 {
@@ -139,7 +139,7 @@ public class ImportTracksJob(
                     {
                         Name = albumName,
                         Year = albumYear ?? 0,
-                        Artist = artist,
+                        Artist = albumArtist,
                         Genre = albumGenre
                     }, false);
 
@@ -147,7 +147,7 @@ public class ImportTracksJob(
                     foreach (var picture in pictures)
                     {
                         var pictureGuid = Guid.NewGuid();
-                        var pictureStream = new MemoryStream(picture.Data);
+                        using var pictureStream = new MemoryStream(picture.Data);
                         var isCover = picture.Type == MediaType.CoverFront;
                         var pictureStoredEntity = new StoredEntity()
                         {
@@ -176,25 +176,33 @@ public class ImportTracksJob(
                 List<Artist> artists = [];
                 if (trackArtists.Count() == 0)
                 {
-                    artists.Add(artist);
+                    artists.Add(albumArtist);
                 }
                 else
                 {
                     foreach (var trackArtist in trackArtists)
                     {
-                        var artistsInDb = await _repository.FindAllAsync<Artist>(x => x.Name == trackArtist);
-                        if (artistsInDb.Count() == 0)
+                        if (trackArtist == albumArtist.Name || trackArtist == null)
                         {
-                            var newArtist = await _repository.CreateAsync(new Artist()
-                            {
-                                Name = trackArtist
-                            }, false);
-                            artists.Add(newArtist!);
+                            artists.Add(albumArtist);
                         }
                         else
                         {
-                            artists.Add(artistsInDb.FirstOrDefault()!);
+                            var artistsInDb = await _repository.FindAllAsync<Artist>(x => x.Name == trackArtist);
+                            if (artistsInDb.Count() == 0)
+                            {
+                                var newArtist = await _repository.CreateAsync(new Artist()
+                                {
+                                    Name = trackArtist
+                                }, false);
+                                artists.Add(newArtist!);
+                            }
+                            else
+                            {
+                                artists.Add(artistsInDb.FirstOrDefault()!);
+                            }
                         }
+
                     }
                 }
                 var track = await _repository.CreateAsync(new Track()
@@ -217,6 +225,7 @@ public class ImportTracksJob(
                         Mime = "audio/ogg",
                         Track = track
                     };
+                    fileStream.Position = 0;
                     await _repository.CreateAsync(storedOrigin, false);
                     await _storageService.SaveFileAsync(fileStream, storedOrigin.Id.ToString());
                     savedStorageFiles.Add(storedOrigin.Id.ToString());

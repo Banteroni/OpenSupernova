@@ -16,6 +16,7 @@ public class ArtistController(
     private readonly IRepository _repository = repository;
 
     [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<ArtistsDto>), 200)]
     public async Task<IActionResult> GetArtists([FromQuery] [Optional] string? name)
     {
         IEnumerable<ArtistsDto> artists;
@@ -31,6 +32,8 @@ public class ArtistController(
     }
 
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ArtistsDto), 200)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> GetArtist([FromRoute] Guid id)
     {
         var artist = await _repository.GetAsync<Artist, ArtistDto>(id);

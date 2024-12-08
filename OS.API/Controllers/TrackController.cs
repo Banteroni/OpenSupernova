@@ -10,6 +10,7 @@ using OS.API.Utilities;
 using OS.Data.Dtos;
 using OS.Services.Mappers;
 using System.Security.Claims;
+using System.ComponentModel;
 
 namespace OS.API.Controllers;
 
@@ -30,13 +31,14 @@ public class TrackController(
     private readonly ILogger<TrackController> _logger = logger;
 
     [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<TracksDto>), 200)]
     public async Task<IActionResult> GetTracks([FromQuery][Optional] Guid? albumId,
         [FromQuery][Optional] string? title, [FromQuery][Optional] Guid? artistId, [FromQuery][Optional] Guid? playlistId)
     {
         var userId = RequestUtilities.GetUserId(HttpContext);
 
         var tracks = await _repository.FindAllAsync<Track>(t =>
-        (albumId == Guid.Empty || (t.Album != null && t.Album.Id == albumId)) &&
+        (albumId == null || (t.Album != null && t.Album.Id == albumId)) &&
         (title == null || t.Name.Contains(title) &&
         (artistId == null || (t.Album != null && t.Album.Artist.Id == artistId)) &&
         (playlistId != null || t.Playlists.FirstOrDefault(x => x.Id == playlistId && x.User.Id == userId) != null)),
@@ -49,6 +51,8 @@ public class TrackController(
     }
 
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(TracksDto), 200)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> GetTrack([FromRoute] Guid id)
     {
         var track = await _repository.GetAsync<Track>(id, [nameof(Album), nameof(Track.Artists)]);
@@ -60,6 +64,9 @@ public class TrackController(
         return Ok(track);
     }
 
+    [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
     [HttpGet("{id}/stream")]
     public async Task<IActionResult> GetTrackStream([FromRoute] Guid id, [FromQuery] bool requestOrigin = false)
     {
@@ -103,6 +110,8 @@ public class TrackController(
     [HttpPost]
     [DisableRequestSizeLimit]
     [Authorize(Policy = "Contributor")]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(200)]
     [RequestFormLimits(ValueLengthLimit = int.MaxValue, MultipartBodyLengthLimit = int.MaxValue)]
     public async Task<IActionResult> Upload([FromForm] string description, [FromForm] DateTime clientDate, IFormFile? file)
     {
@@ -132,6 +141,7 @@ public class TrackController(
     }
 
     [HttpGet("star")]
+    [ProducesResponseType(typeof(IEnumerable<TracksDto>), 200)]
     public async Task<IActionResult> GetStarredTracks()
     {
         var userId = RequestUtilities.GetUserId(HttpContext);
@@ -144,6 +154,8 @@ public class TrackController(
     }
 
     [HttpPut("{id}/star")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> StarTrack([FromRoute] Guid id)
     {
         var userId = RequestUtilities.GetUserId(HttpContext);
@@ -163,6 +175,8 @@ public class TrackController(
     }
 
     [HttpDelete("{id}/star")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> UnstarTrack([FromRoute] Guid id)
     {
         var userId = RequestUtilities.GetUserId(HttpContext);
@@ -182,7 +196,7 @@ public class TrackController(
         return Ok();
     }
 
-    public List<TracksDto> ToTrackDtoWithFavorites(IEnumerable<Track> tracks, Guid userId)
+    private List<TracksDto> ToTrackDtoWithFavorites(IEnumerable<Track> tracks, Guid userId)
     {
         var tracksDto = new List<TracksDto>();
         foreach (var track in tracks)

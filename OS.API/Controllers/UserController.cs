@@ -29,6 +29,8 @@ namespace OS.API.Controllers
         [HttpPost]
         [Route("login")]
         [AllowAnonymous]
+        [ProducesResponseType(typeof(Dictionary<string, string>), 200)]
+        [ProducesResponseType(401)]
         public async Task<IActionResult> Login([FromBody] LoginBody payload)
         {
             var users = await _repository.FindAllAsync<User>(x => x.Username == payload.Username);
@@ -64,6 +66,8 @@ namespace OS.API.Controllers
 
         [HttpPatch]
         [Route("password")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(401)]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordBody payload)
         {
             var user = HttpContext.Items["User"] as OS.Data.Models.User;
@@ -83,6 +87,7 @@ namespace OS.API.Controllers
 
         [HttpPost]
         [Authorize(Policy = "Admin")]
+        [Route("create")]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserBody payload)
         {
             var users = await _repository.FindAllAsync<User>(x => x.Username == payload.Username);
