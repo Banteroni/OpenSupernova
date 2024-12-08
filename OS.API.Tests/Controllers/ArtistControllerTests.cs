@@ -3,6 +3,7 @@ using Moq;
 using OS.API.Controllers;
 using OS.Data.Dtos;
 using OS.Data.Models;
+using OS.Services.Mappers;
 using OS.Services.Repository;
 using System;
 using System.Collections.Generic;
@@ -17,12 +18,14 @@ namespace OS.API.Tests.Controllers
     {
         public ArtistController _artistController;
         public Mock<IRepository> _repository;
+        public IDtoMapper _mapper;
 
         [SetUp]
         public void Setup()
         {
+            _mapper = new DtoMapper();
             _repository = new Mock<IRepository>();
-            _artistController = new ArtistController(_repository.Object);
+            _artistController = new ArtistController(_repository.Object, _mapper);
         }
 
         [Test]
@@ -45,7 +48,7 @@ namespace OS.API.Tests.Controllers
             var result = _artistController.GetArtists("Test").Result as OkObjectResult;
 
             // Assert
-            Assert.IsNotNull(result);
+            Assert.That(result, Is.Not.Null);
             Assert.That(result?.Value, Is.EqualTo(artistsDto));
         }
 
@@ -69,7 +72,7 @@ namespace OS.API.Tests.Controllers
             var result = _artistController.GetArtists(null).Result as OkObjectResult;
 
             // Assert
-            Assert.IsNotNull(result);
+            Assert.That(result, Is.Not.Null);
             Assert.That(result?.Value, Is.EqualTo(artistsDto));
         }
 
@@ -89,7 +92,7 @@ namespace OS.API.Tests.Controllers
             // Act
             var result = _artistController.GetArtist(Guid.NewGuid()).Result as OkObjectResult;
             // Assert
-            Assert.IsNotNull(result);
+            Assert.That(result, Is.Not.Null);
             Assert.That(result?.Value, Is.EqualTo(artistDto));
         }
 
@@ -101,7 +104,92 @@ namespace OS.API.Tests.Controllers
             // Act
             var result = _artistController.GetArtist(Guid.NewGuid()).Result as NotFoundResult;
             // Assert
-            Assert.IsNotNull(result);
+            Assert.That(result, Is.Not.Null);
+        }
+
+        [Test]
+        public void PostArtist()
+        {
+            // Arrange
+            var artistDto = new PayloadArtistDto()
+            {
+                Name = "Test"
+            };
+            var artist = new Artist()
+            {
+                Name = "Test"
+            };
+            _repository.Setup(x => x.CreateAsync(It.IsAny<Artist>(), It.IsAny<bool>())).ReturnsAsync(artist);
+            // Act
+            var result = _artistController.PostArtist(artistDto).Result as OkObjectResult;
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result?.Value, Is.EqualTo(artist));
+        }
+
+        [Test]
+        public void PostArtistNoName()
+        {
+            // Arrange
+            var artistDto = new PayloadArtistDto()
+            {
+                Name = null
+            };
+            // Act
+            var result = _artistController.PostArtist(artistDto).Result as BadRequestObjectResult;
+            // Assert
+            Assert.That(result, Is.Not.Null);
+        }
+
+        [Test]
+        public void PatchArtistNotFound()
+        {
+            // Arrange
+            _repository.Setup(x => x.GetAsync<Artist>(It.IsAny<Guid>(), null)).ReturnsAsync((Artist)null);
+            // Act
+            var result = _artistController.PatchArtist(Guid.NewGuid(), new PayloadArtistDto()).Result as NotFoundResult;
+            // Assert
+            Assert.That(result, Is.Not.Null);
+        }
+
+        [Test]
+        public void PatchArtistNoName()
+        {
+            // Arrange
+            var artist = new Artist()
+            {
+                Name = "Test"
+            };
+            var artistDto = new PayloadArtistDto()
+            {
+                Name = null
+            };
+            _repository.Setup(x => x.GetAsync<Artist>(It.IsAny<Guid>(), null)).ReturnsAsync(artist);
+            // Act
+            var result = _artistController.PatchArtist(Guid.NewGuid(), artistDto).Result as OkObjectResult;
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(artist.Name, Is.EqualTo("Test"));
+        }
+
+        [Test]
+        public void PatchArtist()
+        {
+            // Arrange
+            var artist = new Artist()
+            {
+                Name = "Test"
+            };
+            var artistDto = new PayloadArtistDto()
+            {
+                Name = "Test2"
+            };
+            _repository.Setup(x => x.GetAsync<Artist>(It.IsAny<Guid>(), null)).ReturnsAsync(artist);
+            // Act
+            var result = _artistController.PatchArtist(Guid.NewGuid(), artistDto).Result as OkObjectResult;
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(artist.Name, Is.EqualTo("Test2"));
         }
 
         [TearDown]

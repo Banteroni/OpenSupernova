@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using OS.API.Utilities;
 using OS.Data.Models;
 using OS.Data.Schemas;
 using OS.Services.Repository;
@@ -70,7 +71,8 @@ namespace OS.API.Controllers
         [ProducesResponseType(401)]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordBody payload)
         {
-            var user = HttpContext.Items["User"] as OS.Data.Models.User;
+            var userId = RequestUtilities.GetUserId(HttpContext);
+            var user = await _repository.GetAsync<User>(userId);
             using var sha256 = SHA256.Create();
             var hashedPassword = sha256.ComputeHash(Encoding.UTF8.GetBytes(payload.CurrentPassword));
             var hashedPasswordString = Encoding.UTF8.GetString(hashedPassword);

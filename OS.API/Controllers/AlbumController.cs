@@ -46,6 +46,65 @@ public class AlbumController(IRepository repository, IStorageService storageServ
         }
         return Ok(album);
     }
+
+    [HttpPost]
+    [ProducesResponseType(typeof(AlbumDto), 200)]
+    [ProducesResponseType(400)]
+    [Authorize(Policy = "Contributor")]
+    public async Task<IActionResult> PostAlbum([FromBody] PayloadAlbumDto payload)
+    {
+        if (payload.ArtistId == null)
+        {
+            return BadRequest(ResponseUtilities.BuildError("No artist provided"));
+        }
+        var artist = await _repository.GetAsync<Artist>((Guid)payload.ArtistId);
+        if (artist == null)
+        {
+            return NotFound(ResponseUtilities.BuildError("Artist not found"));
+        }
+        var album = _mapper.Map<Album>(payload);
+        album.Artist = artist;
+        await _repository.CreateAsync(album);
+        return Ok(_mapper.Map<AlbumDto>(album));
+    }
+
+    [HttpPatch("{id}")]
+    [Authorize(Policy = "Contributor")]
+    [ProducesResponseType(typeof(AlbumDto), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> PatchAlbum([FromRoute] Guid id, [FromBody] PayloadAlbumDto payload)
+    {
+        var album = await _repository.GetAsync<Album>(id);
+        if (album == null)
+        {
+            return NotFound();
+        }
+        if (payload.Name != null)
+        {
+            album.Name = payload.Name;
+        }
+        if (payload.Genre != null)
+        {
+            album.Genre = payload.Genre;
+        }
+        if (payload.Year != null)
+        {
+            album.Year = (int)payload.Year;
+        }
+        if (payload.ArtistId != null)
+        {
+            var artistInDb = await _repository.GetAsync<Artist>((Guid)payload.ArtistId);
+            if (artistInDb == null)
+            {
+                return NotFound(ResponseUtilities.BuildError("Artist not found"));
+            }
+            album.Artist = artistInDb;
+        }
+        await _repository.UpdateAsync(album);
+        return Ok(_mapper.Map<AlbumDto>(album));
+
+    }
+
     [HttpGet("{id}/cover")]
     [ProducesResponseType(typeof(File), 200)]
     public async Task<IActionResult> GetAlbumCover([FromRoute] Guid id)

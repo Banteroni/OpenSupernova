@@ -196,6 +196,44 @@ public class TrackController(
         return Ok();
     }
 
+    [HttpPatch("{id}")]
+    [Authorize(Policy = "Contributor")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> PatchTrack([FromRoute] Guid id, [FromBody] PayloadTrackDto trackDto)
+    {
+        var track = await _repository.GetAsync<Track>(id);
+        if (track == null)
+        {
+            return NotFound();
+        }
+        if (trackDto.AlbumId != null)
+        {
+            var album = await _repository.GetAsync<Album>((Guid)trackDto.AlbumId);
+            if (album == null)
+            {
+                return NotFound(ResponseUtilities.BuildError("Album not found"));
+            }
+            track.Album = album;
+        }
+        if (trackDto.Name != null)
+        {
+            track.Name = trackDto.Name;
+        }
+        if (trackDto.Duration != null)
+        {
+            track.Duration = (int)trackDto.Duration;
+        }
+        if (trackDto.ArtistIds != null)
+        {
+            var artists = await _repository.FindAllAsync<Artist>(x => trackDto.ArtistIds.Contains(x.Id));
+            track.Artists = artists.ToList();
+        }
+
+        await _repository.UpdateAsync(track);
+        return Ok();
+    }
+
     private List<TracksDto> ToTrackDtoWithFavorites(IEnumerable<Track> tracks, Guid userId)
     {
         var tracksDto = new List<TracksDto>();
