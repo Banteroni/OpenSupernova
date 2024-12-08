@@ -4,6 +4,7 @@ using Moq;
 using OS.API.Controllers;
 using OS.Data.Models;
 using OS.Data.Schemas;
+using OS.Services.Mappers;
 using OS.Services.Repository;
 using System;
 using System.Collections.Generic;
@@ -19,12 +20,14 @@ namespace OS.API.Tests.Controllers
     {
         public PlaylistController _playlistController;
         public Mock<IRepository> _repository;
+        public Mock<IDtoMapper> _mapper;
 
         [SetUp]
         public void Setup()
         {
             _repository = new Mock<IRepository>();
-            _playlistController = new PlaylistController(_repository.Object);
+            _mapper = new Mock<IDtoMapper>();
+            _playlistController = new PlaylistController(_repository.Object, _mapper.Object);
         }
 
         [Test]
