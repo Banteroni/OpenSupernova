@@ -26,7 +26,7 @@ public static class StorageExtension
             {
                 if (localSettingsKey.Path == null)
                 {
-                    throw new Exception("Path is required");
+                    localSettingsKey.Path = Path.Combine(Directory.GetCurrentDirectory(), key == StoragePurpose.StorageSettings ? "storage" : "temp");
                 }
                 Directory.CreateDirectory(localSettingsKey.Path);
             }

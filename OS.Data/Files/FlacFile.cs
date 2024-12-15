@@ -190,8 +190,15 @@ public class FlacFile(Stream data) : BaseFile(data)
         }
 
         var comments = ExtractVorbisComments(bytesEnumerable.First());
-        comments.TryGetValue(comment, out var value);
-        return value;
+        string[] fields = [comment, comment.ToLower()];
+        foreach (var field in fields)
+        {
+            if (comments.ContainsKey(field))
+            {
+                return comments[field];
+            }
+        }
+        return null;
     }
 
     private static int ToBigEndian(byte[] data)

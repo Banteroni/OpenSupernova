@@ -9,6 +9,7 @@ using System.Security.Cryptography;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using OS.Services.Mappers;
+using OS.API.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -98,6 +99,8 @@ builder.Services.AddAuthorization(options =>
         policy => policy.RequireClaim(ClaimTypes.Role, "Admin"));
 });
 
+builder.Services.AddScoped<PagingMiddleware>();
+
 var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -113,6 +116,8 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+
+app.UseMiddleware<PagingMiddleware>();
 
 app.UseAuthorization();
 
