@@ -222,7 +222,7 @@ public class ImportTracksJob(
                     {
                         Id = Guid.NewGuid(),
                         Type = StoredEntityType.Origin,
-                        Mime = "audio/ogg",
+                        Mime = "audio/flac",
                         Track = track
                     };
                     fileStream.Position = 0;

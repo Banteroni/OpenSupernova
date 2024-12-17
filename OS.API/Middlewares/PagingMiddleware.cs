@@ -43,7 +43,11 @@ namespace OS.API.Middlewares
                     await context.Response.Body.WriteAsync(stream.ToArray());
                 }
             }
-
+            else
+            {
+                context.Response.Body = originalBody;
+                await context.Response.Body.WriteAsync(stream.ToArray());
+            }
         }
     }
 }

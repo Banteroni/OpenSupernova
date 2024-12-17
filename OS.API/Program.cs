@@ -105,16 +105,18 @@ var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseCors(x =>
+{
+    x.AllowAnyOrigin();
+    x.AllowAnyHeader();
+    x.WithExposedHeaders(["Content-Range"]);
+});
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-}
-
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
 }
 
 app.UseMiddleware<PagingMiddleware>();

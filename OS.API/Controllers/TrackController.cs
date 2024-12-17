@@ -9,9 +9,6 @@ using Microsoft.AspNetCore.Authorization;
 using OS.API.Utilities;
 using OS.Data.Dtos;
 using OS.Services.Mappers;
-using System.Security.Claims;
-using System.ComponentModel;
-
 namespace OS.API.Controllers;
 
 [ApiController]
@@ -71,40 +68,58 @@ public class TrackController(
     public async Task<IActionResult> GetTrackStream([FromRoute] Guid id, [FromQuery] bool requestOrigin = false)
     {
         var track = await _repository.GetAsync<Track>(id, [nameof(Track.StoredEntities)]);
+        var originFound = false;
         if (track == null)
         {
             return NotFound();
         }
 
-        var origin = track.StoredEntities.FirstOrDefault(x => x.Type == StoredEntityType.Origin);
-        var stream = track.StoredEntities.FirstOrDefault(x => x.Type == StoredEntityType.Stream);
+        string mime = "audio/ogg";
+         var streamToReturn = new MemoryStream();
         if (requestOrigin)
         {
+            var origin = track.StoredEntities.FirstOrDefault(x => x.Type == StoredEntityType.Origin);
             if (origin == null)
             {
                 _logger.LogWarning($"Couldn't find the origin of file for track {id}", id);
             }
             else
             {
-                var originStream = await _storageService.GetFileStream((string)origin.Id.ToString());
+                await using var originStream = await _storageService.GetFileStream((string)origin.Id.ToString());
                 if (originStream == null)
                 {
                     return Problem("Origin file was found in the database, however it couldn't be found in the storage");
                 }
-                return File(originStream, origin.Mime);
+                await originStream.CopyToAsync(streamToReturn);
+                mime = origin.Mime;
+                originFound = true;
             }
         }
-        if (stream == null)
+        if (!requestOrigin || !originFound)
         {
-            return Problem("Stream file was not found in the database");
-        }
-        var streamStream = await _storageService.GetFileStream((string)stream.Id.ToString());
-        if (streamStream == null)
-        {
-            return Problem("Stream file was found in the database, however it couldn't be found in the storage");
-        }
-        return File(streamStream, stream.Mime);
+            var stream = track.StoredEntities.FirstOrDefault(x => x.Type == StoredEntityType.Stream);
+            if (stream == null)
+            {
+                return Problem("Stream file was not found in the database");
+            }
+            await using var lossyStream = await _storageService.GetFileStream((string)stream.Id.ToString());
+            if (lossyStream == null)
+            {
+                return Problem("Stream file was found in the database, however it couldn't be found in the storage");
+            }
+            await lossyStream.CopyToAsync(streamToReturn);
 
+            if (streamToReturn.Length == 0)
+            {
+                return Problem("Stream file was found in the database, however it was empty");
+            }
+            mime = stream.Mime;
+        }
+
+        streamToReturn.Seek(0, SeekOrigin.Begin);
+        HttpContext.Response.Headers.Append("X-Track-Duration", track.Duration.ToString());
+            
+        return File(streamToReturn, mime, true);
     }
 
     [HttpPost]
