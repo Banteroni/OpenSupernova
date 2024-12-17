@@ -109,7 +109,7 @@ app.UseCors(x =>
 {
     x.AllowAnyOrigin();
     x.AllowAnyHeader();
-    x.WithExposedHeaders(["Content-Range"]);
+    x.WithExposedHeaders(["Content-Range", "X-Track-Duration"]);
 });
 
 // Configure the HTTP request pipeline.
