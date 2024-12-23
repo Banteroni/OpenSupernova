@@ -12,6 +12,6 @@ namespace OS.Data.Dtos
         public required string Name { get; set; }
         public string? Genre { get; set; }
         public int Year { get; set; }
-        public Guid ArtistId { get; set; }
+        public ArtistsDto? Artist { get; set; }
     }
 }
