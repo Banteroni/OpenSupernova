@@ -29,7 +29,7 @@ namespace OS.API.Controllers
         public async Task<IActionResult> GetPlaylists()
         {
             var userId = RequestUtilities.GetUserId(HttpContext);
-            var playlists = await _repository.FindAllAsync<Playlist>(x => x.User.Id == userId);
+            var playlists = await _repository.FindAllAsync<Playlist>(x => x.User.Id == userId, [nameof(Playlist.PlaylistTracks)]);
             return Ok(playlists);
         }
 

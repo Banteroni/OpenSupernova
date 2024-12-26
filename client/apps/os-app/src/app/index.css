@@ -1,0 +1,10 @@
+@tailwind components;
+
+@layer components {
+    .menu-voice {
+        @apply text-sm text-secondary
+    }
+    .section {
+        @apply flex flex-col text-md gap-y-2
+    }
+}
