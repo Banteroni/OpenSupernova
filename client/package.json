@@ -9,7 +9,7 @@
     "typescript": "^5.0.0"
   },
   "workspaces": [
-    "players/*",
+    "sdk/*",
     "apps/*",
     "common/*"
   ]

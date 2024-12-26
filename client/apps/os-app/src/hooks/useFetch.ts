@@ -8,13 +8,17 @@ export type StoreType = {
 export type FetchResult<T> = [
     data: T | null,
     error: Error | null,
-    loading: boolean
+    loading: boolean,
+    setFetchNow: () => void
 ]
 
-function useFetch<T>(endpoint: string, query?: { [key: string]: string | number }) {
+function useFetch<T>(endpoint: string, query?: { [key: string]: string | number }, auto: boolean = true) {
     const [url, setUrl] = useState<string>("")
     const [token, setToken] = useState<string>("")
-    const [result, setResult] = useState<FetchResult<T>>([null, null, true])
+    const triggerFetch = () => setFetchNow(true)
+    const [result, setResult] = useState<FetchResult<T | null>>([null, null, true, triggerFetch])
+    const [fetchNow, setFetchNow] = useState<boolean>(auto)
+
     useMemo(() => {
         (async () => {
             const store = await load("config.json", { autoSave: false })
@@ -29,7 +33,7 @@ function useFetch<T>(endpoint: string, query?: { [key: string]: string | number 
                 setResult([null, {
                     name: "no_config",
                     message: "Couldn't find token or url"
-                }, false])
+                }, false, triggerFetch])
             }
         })()
     }, [])
@@ -45,17 +49,18 @@ function useFetch<T>(endpoint: string, query?: { [key: string]: string | number 
             }
         })
             .then((res) => res.json())
-            .then((data) => setResult([data, null, false]))
-            .catch((error) => setResult([null, error, false]))
+            .then((data) => setResult([data, null, false, triggerFetch]))
+            .catch((error) => setResult([null, error, false, triggerFetch]))
     }, [endpoint, query])
 
+
     useEffect(() => {
-        if (url && token) {
+        if (url && token && fetchNow) {
             fetcher(endpoint, url, token)
         }
-    }, [url, token])
+    }, [url, token, fetchNow])
 
-    return result
+    return [...result, setFetchNow]
 }
 
 export default useFetch

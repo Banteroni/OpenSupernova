@@ -11,4 +11,5 @@ export default class CustomPlayer extends Player {
         setPlay(false);
         this.Pause();
     }
+    
 }

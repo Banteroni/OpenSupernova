@@ -1,11 +1,15 @@
+import { Albums, Playlist } from "opensupernova";
 import Album from "../../components/composite/album";
-import Playlist from "../../components/composite/playlist";
-import useFetch from "../../hooks/useFetch";
+import PlaylistComponent from "../../components/composite/playlist";
 
-export default function HomeComponent() {
-    const [data, error, loading] = useFetch<Albums[]>("/api/albums")
+export default function HomeComponent(props: {
+    albums: Albums[] | null,
+    playlistData: Playlist[] | null,
+    loading: boolean
+}) {
 
-    console.log(data, error, loading)
+    const albumsData = props.albums
+    const playlistsData = props.playlistData
     return <div className="flex flex-col gap-y-20">
         <div className="flex flex-col gap-y-6">
             <h1>Playlists</h1>
@@ -17,13 +21,13 @@ export default function HomeComponent() {
                         <p className="text-sm">You have starred 120 songs</p>
                     </div>
                 </div>
-                {data && data.map((album) => <Playlist key={album.id} imageUrl={"https://cdn-images.dzcdn.net/images/cover/c41dd72d962458d2187132f55a3ca711/200x200.jpg"} title={album.name} id={album.id} songs={data.length} />)}
+                {playlistsData && playlistsData.map((playlist) => <PlaylistComponent key={playlist.id} imageUrl={"https://cdn-images.dzcdn.net/images/cover/c41dd72d962458d2187132f55a3ca711/200x200.jpg"} title={playlist.name} id={playlist.id} songs={playlistsData.length} />)}
             </div>
         </div>
         <div className="flex flex-col gap-y-6">
             <h1>Albums</h1>
             <div className="flex gap-x-6 w-full">
-                {data && data.map((album) => <Album key={album.id} imageUrl={"https://cdn-images.dzcdn.net/images/cover/c41dd72d962458d2187132f55a3ca711/200x200.jpg"} title={album.name} id={album.id} songs={data.length} />)}
+                {albumsData && albumsData.map((album) => <Album key={album.id} imageUrl={"https://cdn-images.dzcdn.net/images/cover/c41dd72d962458d2187132f55a3ca711/200x200.jpg"} title={album.name} id={album.id} songs={albumsData.length} />)}
             </div>
         </div>
     </div>
